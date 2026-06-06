@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Layout, Typography, theme, Divider, FloatButton, message, Tabs, Button, Popconfirm } from 'antd';
+import { Layout, Typography, theme, Divider, FloatButton, message, Tabs, Button, Popconfirm, Spin, Switch, Tooltip } from 'antd';
 import { usePatients } from './hooks/usePatients';
 import PatientTable from './components/PatientTable';
 import PatientForm from './components/PatientForm';
@@ -9,7 +9,7 @@ import ImportExportButtons from './components/ImportExportButtons';
 import SearchBar from './components/SearchBar';
 import DatabasePanel from './components/DatabasePanel';
 import { Patient } from './types';
-import { DeleteOutlined } from '@ant-design/icons';
+import { DeleteOutlined, ClusterOutlined } from '@ant-design/icons';
 
 const { Header, Content, Footer } = Layout;
 const { Title, Text } = Typography;
@@ -40,10 +40,13 @@ const App: React.FC = () => {
     addToDatabase,
     loadFromDatabase,
     clearCurrentTour,
+    // État de chargement
+    isLoading,
   } = usePatients();
 
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [editingPatient, setEditingPatient] = useState<Patient | null>(null);
+  const [enableClustering, setEnableClustering] = useState(true);
 
   const handleAddPatient = () => {
     setEditingPatient(null);
@@ -85,6 +88,7 @@ const App: React.FC = () => {
       </Header>
 
       <Content style={{ padding: '24px', backgroundColor: colorBgContainer }}>
+        <Spin spinning={isLoading} size="large" tip="Chargement des données..." fullscreen />
         <div
           style={{
             background: colorBgContainer,
@@ -144,14 +148,26 @@ const App: React.FC = () => {
 
                     {/* Carte interactive */}
                     <div style={{ marginBottom: 24 }}>
-                      <Title level={5} style={{ marginBottom: 16 }}>
-                        Carte des livraisons (itinéraire routier)
-                      </Title>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                        <Title level={5} style={{ margin: 0 }}>
+                          Carte des livraisons (itinéraire routier)
+                        </Title>
+                        <Tooltip title={enableClustering ? 'Désactiver le clustering' : 'Activer le clustering'}>
+                          <Switch
+                            checked={enableClustering}
+                            onChange={setEnableClustering}
+                            checkedChildren="Cluster"
+                            unCheckedChildren="Marqueurs"
+                            style={{ marginLeft: 8 }}
+                          />
+                        </Tooltip>
+                      </div>
                       <MapView
                         patients={patients}
                         optimizationResult={optimizationResult}
                         routePolyline={routePolyline}
                         height="600px"
+                        enableClustering={enableClustering}
                       />
                     </div>
 

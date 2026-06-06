@@ -5,6 +5,16 @@ import { optimizeRoute as optimizeRouteFunction } from '../utils/tsp';
 import { exportToCSV, importFromCSV } from '../utils/csv';
 import { geocodeAddress, clearGeocodeCache } from '../utils/geocoding';
 import { calculateRouteDistance, calculateRouteTime, fetchRoutePolyline } from '../utils/distance';
+import {
+  getAllPatients as getAllPatientsFromDB,
+  saveAllPatients as saveAllPatientsToDB,
+  getAllDatabasePatients as getAllDatabasePatientsFromDB,
+  saveAllDatabasePatients as saveAllDatabasePatientsToDB,
+  addDatabasePatient as addDatabasePatientToDB,
+  updateDatabasePatient as updateDatabasePatientToDB,
+  loadInitialData,
+  isIndexedDBAvailable,
+} from '../utils/db';
 
 interface UsePatientsResult {
   patients: Patient[];
@@ -29,11 +39,9 @@ interface UsePatientsResult {
   addToDatabase: (patient: Omit<Patient, 'id' | 'isPharmacy' | 'latitude' | 'longitude'>) => Promise<void>;
   loadFromDatabase: (patientIds: string[]) => void;
   clearCurrentTour: () => void;
+  // État de chargement initial
+  isLoading: boolean;
 }
-
-// Clés pour le localStorage
-const STORAGE_KEY = 'pharmacy-delivery-patients';
-const DATABASE_KEY = 'pharmacy-delivery-database';
 
 // Fonction pour normaliser les patients et s'assurer que la pharmacie a les bonnes coordonnées
 const normalizePatients = (patients: Patient[]): Patient[] => {
@@ -49,19 +57,20 @@ const normalizePatients = (patients: Patient[]): Patient[] => {
 };
 
 export const usePatients = (): UsePatientsResult => {
-  const [patients, _setPatients] = useState<Patient[]>(() => {
-    // Charger depuis localStorage si disponible
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        return normalizePatients(parsed);
-      } catch {
-        return getDefaultPatients();
-      }
-    }
-    return getDefaultPatients();
-  });
+  // État de chargement initial
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  
+  // État pour les patients de la tournée en cours
+  const [patients, _setPatients] = useState<Patient[]>([]);
+  
+  // État pour les patients de la base de données locale
+  const [databasePatients, _setDatabasePatients] = useState<Patient[]>([]);
+
+  const [optimizationResult, setOptimizationResult] = useState<OptimizationResult | null>(null);
+  const [isOptimizing, setIsOptimizing] = useState<boolean>(false);
+  const [isGeocoding, setIsGeocoding] = useState<boolean>(false);
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [routePolyline, setRoutePolyline] = useState<[number, number][] | null>(null);
 
   // Wrapper pour setPatients qui normalise toujours les données
   const setPatients = useCallback((patients: Patient[] | ((prev: Patient[]) => Patient[])) => {
@@ -70,41 +79,91 @@ export const usePatients = (): UsePatientsResult => {
       return normalizePatients(newPatients);
     });
   }, []);
-  
-  // Base de données de patients (sans la pharmacie)
-  const [databasePatients, setDatabasePatients] = useState<Patient[]>(() => {
-    const saved = localStorage.getItem(DATABASE_KEY);
-    if (saved) {
+
+  // Wrapper pour setDatabasePatients
+  const setDatabasePatients = useCallback((patients: Patient[] | ((prev: Patient[]) => Patient[])) => {
+    _setDatabasePatients(prev => {
+      const newPatients = typeof patients === 'function' ? patients(prev) : patients;
+      return newPatients;
+    });
+  }, []);
+
+  // Charger les données initiales depuis IndexedDB ou localStorage
+  useEffect(() => {
+    const loadData = async () => {
       try {
-        return JSON.parse(saved);
-      } catch {
-        return [];
+        if (isIndexedDBAvailable()) {
+          const { patients: initialPatients, databasePatients: initialDatabasePatients } = 
+            await loadInitialData();
+          
+          // Normaliser les patients de la tournée
+          const normalizedPatients = normalizePatients(initialPatients);
+          
+          _setPatients(normalizedPatients);
+          _setDatabasePatients(initialDatabasePatients);
+        } else {
+          // Fallback vers localStorage si IndexedDB n'est pas disponible
+          const savedPatients = localStorage.getItem('pharmacy-delivery-patients');
+          const savedDatabase = localStorage.getItem('pharmacy-delivery-database');
+          
+          const initialPatients = savedPatients ? JSON.parse(savedPatients) : getDefaultPatients();
+          const initialDatabasePatients = savedDatabase ? JSON.parse(savedDatabase) : [];
+          
+          _setPatients(normalizePatients(initialPatients));
+          _setDatabasePatients(initialDatabasePatients);
+        }
+      } catch (error) {
+        console.error('Erreur lors du chargement des données initiales:', error);
+        // En cas d'erreur, utiliser les données par défaut
+        _setPatients(getDefaultPatients());
+        _setDatabasePatients([]);
+      } finally {
+        setIsLoading(false);
       }
-    }
-    return [];
-  });
-  
-  const [optimizationResult, setOptimizationResult] = useState<OptimizationResult | null>(null);
-  const [isOptimizing, setIsOptimizing] = useState<boolean>(false);
-  const [isGeocoding, setIsGeocoding] = useState<boolean>(false);
-  const [searchQuery, setSearchQuery] = useState<string>('');
-  const [routePolyline, setRoutePolyline] = useState<[number, number][] | null>(null);
+    };
 
-  // Sauvegarder dans localStorage à chaque changement (avec throttling pour éviter les sauvegardes trop fréquentes)
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(patients));
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [patients]);
+    loadData();
+  }, []);
 
-  // Sauvegarder la base de données dans localStorage
+  // Sauvegarder les patients de la tournée dans IndexedDB (avec throttling)
   useEffect(() => {
-    const timer = setTimeout(() => {
-      localStorage.setItem(DATABASE_KEY, JSON.stringify(databasePatients));
+    if (isLoading) return; // Ne pas sauvegarder pendant le chargement initial
+    
+    const timer = setTimeout(async () => {
+      try {
+        if (isIndexedDBAvailable()) {
+          await saveAllPatientsToDB(patients);
+        } else {
+          // Fallback vers localStorage
+          localStorage.setItem('pharmacy-delivery-patients', JSON.stringify(patients));
+        }
+      } catch (error) {
+        console.error('Erreur lors de la sauvegarde des patients:', error);
+      }
     }, 300);
+    
     return () => clearTimeout(timer);
-  }, [databasePatients]);
+  }, [patients, isLoading]);
+
+  // Sauvegarder les patients de la base de données dans IndexedDB (avec throttling)
+  useEffect(() => {
+    if (isLoading) return; // Ne pas sauvegarder pendant le chargement initial
+    
+    const timer = setTimeout(async () => {
+      try {
+        if (isIndexedDBAvailable()) {
+          await saveAllDatabasePatientsToDB(databasePatients);
+        } else {
+          // Fallback vers localStorage
+          localStorage.setItem('pharmacy-delivery-database', JSON.stringify(databasePatients));
+        }
+      } catch (error) {
+        console.error('Erreur lors de la sauvegarde de la base de données:', error);
+      }
+    }, 300);
+    
+    return () => clearTimeout(timer);
+  }, [databasePatients, isLoading]);
 
   // Filtrer les patients en fonction de la recherche
   const filteredPatients = useCallback(() => {
@@ -157,7 +216,7 @@ export const usePatients = (): UsePatientsResult => {
     } finally {
       setIsGeocoding(false);
     }
-  }, [setPatients, setDatabasePatients]);
+  }, [setPatients, setDatabasePatients, setIsGeocoding]);
 
   // Mettre à jour un patient avec géocodage automatique si l'adresse change
   const updatePatient = useCallback(async (id: string, updatedData: Partial<Patient>) => {
@@ -192,7 +251,7 @@ export const usePatients = (): UsePatientsResult => {
     } finally {
       setIsGeocoding(false);
     }
-  }, [patients, setPatients, setDatabasePatients]);
+  }, [patients, setPatients, setDatabasePatients, setIsGeocoding]);
 
   // Supprimer un patient (ne pas supprimer la pharmacie)
   const deletePatient = useCallback((id: string) => {
@@ -378,5 +437,7 @@ export const usePatients = (): UsePatientsResult => {
     addToDatabase,
     loadFromDatabase,
     clearCurrentTour,
+    // État de chargement
+    isLoading,
   };
 };
