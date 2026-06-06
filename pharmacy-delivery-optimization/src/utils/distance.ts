@@ -188,7 +188,7 @@ export const calculateRouteTime = async (
   } catch (error) {
     console.error('Erreur calcul temps routier:', error);
     // Fallback: estimation basée sur la distance
-    const distance = calculateTotalDistance(waypoints.map((wp, i) => ({ latitude: wp[0], longitude: wp[1] })));
+    const distance = calculateTotalDistance(waypoints.map(wp => ({ latitude: wp[0], longitude: wp[1] })));
     return Math.round((distance / 40) * 60); // 40 km/h de moyenne
   }
 };

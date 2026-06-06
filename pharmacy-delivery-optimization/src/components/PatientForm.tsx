@@ -38,7 +38,6 @@ const PatientForm: React.FC<PatientFormProps> = ({
       return;
     }
 
-    const query = (nom || '') + ' ' + (prenom || '');
     const filtered = existingPatients.filter(p => 
       p.nom.toLowerCase().includes(nom?.toLowerCase() || '') &&
       p.prenom.toLowerCase().includes(prenom?.toLowerCase() || '')

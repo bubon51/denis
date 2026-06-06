@@ -183,7 +183,7 @@ export const usePatients = (): UsePatientsResult => {
       // Conserver la pharmacie existante si elle existe
       const existingPharmacy = patients.find(p => p.isPharmacy);
       
-      setPatients(prev => {
+      setPatients(() => {
         const newPatients = [...importedPatients];
         // Ajouter la pharmacie existante si elle n'est pas dans l'import
         if (existingPharmacy && !importedPatients.some(p => p.isPharmacy)) {
