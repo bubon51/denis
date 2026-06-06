@@ -99,6 +99,8 @@ https://[votre-username].github.io/denis/pharmacy-delivery-optimization/
 ```
 pharmacy-delivery-optimization/
 ├── public/
+│   ├── pwa-icon.svg
+│   └── favicon.ico
 ├── src/
 │   ├── components/
 │   │   ├── PatientForm.tsx
@@ -106,7 +108,8 @@ pharmacy-delivery-optimization/
 │   │   ├── MapView.tsx
 │   │   ├── OptimizationPanel.tsx
 │   │   ├── ImportExportButtons.tsx
-│   │   └── SearchBar.tsx
+│   │   ├── SearchBar.tsx
+│   │   └── PWAInstallPrompt.tsx
 │   ├── hooks/
 │   │   └── usePatients.ts
 │   ├── utils/
@@ -187,7 +190,8 @@ pharmacy-delivery-optimization/
 - **Géocodage**: Nominatim (OpenStreetMap)
 - **Routage**: OSRM (Open Source Routing Machine)
 - **Stockage**: IndexedDB (avec fallback localStorage)
-- **Build**: Vite 5.x
+- **PWA**: Progressive Web App (installable, hors ligne)
+- **Build**: Vite 5.x + vite-plugin-pwa
 - **Déploiement**: GitHub Pages
 
 ## 📊 Algorithmes
@@ -275,6 +279,75 @@ Un interrupteur (**Switch**) est disponible en haut à droite de la carte pour :
 | `spiderfyOnMaxZoom` | true | Active la séparation des marqueurs au zoom maximal. |
 | `showCoverageOnHover` | true | Affiche la zone couverte par le cluster au survol. |
 | `zoomToBoundsOnClick` | true | Zoom sur les limites du cluster au clic. |
+
+## 📱 Progressive Web App (PWA)
+
+### Fonctionnalités PWA
+L'application est maintenant une **Progressive Web App** (PWA) grâce à `vite-plugin-pwa` :
+
+- **📲 Installable** : L'utilisateur peut installer l'application sur son écran d'accueil (mobile/desktop).
+- **🌐 Hors ligne** : Les ressources statiques (HTML, CSS, JS, images) sont mises en cache pour une utilisation hors ligne.
+- **🔄 Mises à jour automatiques** : Détection des nouvelles versions et invitation à rafraîchir.
+- **🎨 Expérience native** : Icône personnalisée, thème, et nom d'application.
+
+### Configuration
+
+#### Manifest (`manifest.webmanifest`)
+Généré automatiquement par `vite-plugin-pwa` avec :
+```json
+{
+  "name": "Optimisation Tournées Livraison - La Réunion",
+  "short_name": "PharmacyDelivery",
+  "theme_color": "#1890ff",
+  "background_color": "#ffffff",
+  "display": "standalone",
+  "icons": [
+    {
+      "src": "/pwa-icon.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
+```
+
+#### Service Worker (`sw.js`)
+- **Cache des ressources statiques** pour une utilisation hors ligne.
+- **Stratégie** : `CacheFirst` pour les assets (Leaflet, OpenStreetMap, etc.).
+- **Mises à jour** : Détection automatique des nouvelles versions.
+
+### Stratégies de cache
+| Type de ressource | Stratégie | Durée de cache |
+|-------------------|-----------|-----------------|
+| Assets Leaflet (unpkg.com) | CacheFirst | 30 jours |
+| Tuiles OpenStreetMap | CacheFirst | 7 jours |
+| Assets GitHub (raw.githubusercontent.com) | CacheFirst | 30 jours |
+| Images/icônes | CacheFirst | 30 jours |
+
+### Installation
+1. **Sur mobile** (Chrome/Android) :
+   - Ouvrez l'application dans Chrome.
+   - Appuyez sur **"Ajouter à l'écran d'accueil"** dans le menu Chrome.
+
+2. **Sur desktop** (Chrome/Edge) :
+   - Ouvrez l'application dans Chrome.
+   - Cliquez sur **"Installer"** dans la barre d'adresse.
+
+3. **Sur iOS (Safari)** :
+   - Ouvrez l'application dans Safari.
+   - Appuyez sur **"Partager"** → **"Sur l'écran d'accueil"**.
+
+### Mises à jour
+- Lorsque vous déployez une nouvelle version, les utilisateurs verront une **notification** leur proposant de rafraîchir la page.
+- Le service worker est configuré pour **skipWaiting** et **clientsClaim**, ce qui permet une mise à jour immédiate après rafraîchissement.
+
+### Fichiers générés
+| Fichier | Rôle |
+|---------|------|
+| `dist/manifest.webmanifest` | Manifest PWA (généré automatiquement). |
+| `dist/sw.js` | Service Worker (généré par Workbox). |
+| `public/pwa-icon.svg` | Icône de l'application (SVG). |
 
 ## 📄 Licence
 

@@ -8,6 +8,7 @@ import OptimizationPanel from './components/OptimizationPanel';
 import ImportExportButtons from './components/ImportExportButtons';
 import SearchBar from './components/SearchBar';
 import DatabasePanel from './components/DatabasePanel';
+import PWAInstaller from './components/PWAInstallPrompt';
 import { Patient } from './types';
 import { DeleteOutlined, ClusterOutlined } from '@ant-design/icons';
 
@@ -81,8 +82,13 @@ const App: React.FC = () => {
     <Layout style={{ minHeight: '100vh' }}>
       <Header style={{ backgroundColor: '#1890ff', padding: '0 24px' }}>
         <div style={{ display: 'flex', alignItems: 'center', height: '100%' }}>
+          <img
+            src="/pharmacy-logo.png"
+            alt="Logo Pharmacie"
+            style={{ height: '40px', marginRight: '12px', borderRadius: '4px' }}
+          />
           <Title level={3} style={{ color: 'white', margin: 0 }}>
-            🏥 Optimisation Tournées Livraison - La Réunion
+            Optimisation Tournées Livraison - La Réunion
           </Title>
         </div>
       </Header>
@@ -232,6 +238,9 @@ const App: React.FC = () => {
         onClick={handleAddPatient}
         style={{ right: 24, bottom: 24 }}
       />
+      
+      {/* Composant PWA pour l'installation et les mises à jour */}
+      <PWAInstaller />
     </Layout>
   );
 };
