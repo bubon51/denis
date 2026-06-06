@@ -37,6 +37,8 @@ interface UsePatientsResult {
   clearCurrentTour: () => void;
   // État de chargement initial
   isLoading: boolean;
+  // Fonction pour basculer hasColdDelivery
+  toggleColdDelivery: (id: string, hasColdDelivery: boolean) => void;
 }
 
 // Fonction pour normaliser les patients et s'assurer que la pharmacie a les bonnes coordonnées
@@ -410,6 +412,16 @@ export const usePatients = (): UsePatientsResult => {
     setSearchQuery('');
   }, [setPatients, setOptimizationResult, setRoutePolyline, setSearchQuery]);
 
+  // Basculer hasColdDelivery pour un patient
+  const toggleColdDelivery = useCallback((id: string, hasColdDelivery: boolean) => {
+    setPatients(prev => 
+      prev.map(p => p.id === id ? { ...p, hasColdDelivery } : p)
+    );
+    // Réinitialiser l'optimisation car la liste des patients a changé
+    setOptimizationResult(null);
+    setRoutePolyline(null);
+  }, [setPatients, setOptimizationResult, setRoutePolyline]);
+
   return {
     patients,
     setPatients,
@@ -435,5 +447,7 @@ export const usePatients = (): UsePatientsResult => {
     clearCurrentTour,
     // État de chargement
     isLoading,
+    // Fonction pour basculer hasColdDelivery
+    toggleColdDelivery,
   };
 };

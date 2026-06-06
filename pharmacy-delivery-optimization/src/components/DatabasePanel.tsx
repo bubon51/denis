@@ -25,7 +25,6 @@ const DatabasePanel: React.FC<DatabasePanelProps> = ({
     prenom: '',
     adresse: '',
     phone: '',
-    hasColdDelivery: false,
   });
 
   const handleSelectPatient = (patientId: string) => {
@@ -66,7 +65,6 @@ const DatabasePanel: React.FC<DatabasePanelProps> = ({
         prenom: newPatient.prenom,
         adresse: newPatient.adresse,
         phone: newPatient.phone,
-        hasColdDelivery: newPatient.hasColdDelivery,
       });
       message.success('Patient ajouté à la base de données');
       setNewPatient({
@@ -74,7 +72,6 @@ const DatabasePanel: React.FC<DatabasePanelProps> = ({
         prenom: '',
         adresse: '',
         phone: '',
-        hasColdDelivery: false,
       });
       setIsModalVisible(false);
     } catch (error) {
@@ -142,11 +139,6 @@ const DatabasePanel: React.FC<DatabasePanelProps> = ({
                 title={
                   <Space>
                     <Text strong>{patient.prenom} {patient.nom}</Text>
-                    {patient.hasColdDelivery && (
-                      <Tag color="cyan" icon={<span>❄️</span>}>
-                        Froid
-                      </Tag>
-                    )}
                   </Space>
                 }
                 description={
@@ -223,12 +215,6 @@ const DatabasePanel: React.FC<DatabasePanelProps> = ({
             onChange={(e) => setNewPatient({ ...newPatient, phone: e.target.value })}
             prefix={<PhoneOutlined />}
           />
-          <Checkbox
-            checked={newPatient.hasColdDelivery}
-            onChange={(e) => setNewPatient({ ...newPatient, hasColdDelivery: e.target.checked })}
-          >
-            Livraison avec du froid (❄️)
-          </Checkbox>
           <Text type="secondary" style={{ fontSize: '12px' }}>
             * Les coordonnées GPS seront automatiquement déterminées à partir de l'adresse.
             <br />

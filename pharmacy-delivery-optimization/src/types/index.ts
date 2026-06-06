@@ -1,6 +1,7 @@
 // Types pour l'application d'optimisation des tournées de livraison
 
-export interface Patient {
+// Type pour les patients stockés dans la base de données (sans hasColdDelivery)
+export interface DatabasePatient {
   id: string;
   nom: string;
   prenom: string;
@@ -9,7 +10,11 @@ export interface Patient {
   longitude: number;
   isPharmacy?: boolean; // Point de départ (pharmacie)
   phone?: string; // Numéro de téléphone (optionnel)
-  hasColdDelivery?: boolean; // Livraison avec du froid (optionnel)
+}
+
+// Type pour les patients en cours de livraison (avec hasColdDelivery)
+export interface Patient extends DatabasePatient {
+  hasColdDelivery?: boolean; // Livraison avec du froid (optionnel, uniquement pour la livraison en cours)
 }
 
 // Temps de livraison fixe pour chaque patient (1 minute)
@@ -34,7 +39,6 @@ export interface CSVPatient {
   latitude: string;
   longitude: string;
   phone?: string; // Numéro de téléphone (optionnel)
-  hasColdDelivery?: string; // "true" ou "false" pour le CSV (optionnel)
 }
 
 // Coordonnées pour La Réunion (centre approximatif)
@@ -57,5 +61,4 @@ export const DEFAULT_PHARMACY: Patient = {
   longitude: 55.64138045246851,
   isPharmacy: true,
   phone: '', // Numéro de téléphone vide par défaut
-  hasColdDelivery: false, // Pas de livraison avec du froid par défaut
 };

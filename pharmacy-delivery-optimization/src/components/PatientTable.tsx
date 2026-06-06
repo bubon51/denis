@@ -1,5 +1,5 @@
 import React from 'react';
-import { Table, Button, Space, Tag, Popconfirm, message } from 'antd';
+import { Table, Button, Space, Tag, Popconfirm, message, Checkbox } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { Patient } from '../types';
 
@@ -8,6 +8,7 @@ interface PatientTableProps {
   onEdit: (patient: Patient) => void;
   onDelete: (id: string) => void;
   onAdd: () => void;
+  onToggleColdDelivery: (id: string, hasColdDelivery: boolean) => void;
   loading?: boolean;
 }
 
@@ -16,6 +17,7 @@ const PatientTable: React.FC<PatientTableProps> = ({
   onEdit,
   onDelete,
   onAdd,
+  onToggleColdDelivery,
   loading,
 }) => {
   const columns: ColumnsType<Patient> = [
@@ -52,15 +54,11 @@ const PatientTable: React.FC<PatientTableProps> = ({
       title: 'Froid',
       key: 'hasColdDelivery',
       render: (_, record) => (
-        <span>
-          {record.hasColdDelivery ? (
-            <Tag color="cyan" icon={<span>❄️</span>}>
-              Oui
-            </Tag>
-          ) : (
-            <Tag color="default">Non</Tag>
-          )}
-        </span>
+        <Checkbox
+          checked={record.hasColdDelivery || false}
+          onChange={(e) => onToggleColdDelivery(record.id, e.target.checked)}
+          disabled={record.isPharmacy}
+        />
       ),
     },
     {

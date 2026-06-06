@@ -61,7 +61,6 @@ const PatientForm: React.FC<PatientFormProps> = ({
         prenom: values.prenom || '',
         adresse: values.adresse,
         phone: values.phone || '',
-        hasColdDelivery: values.hasColdDelivery || false,
       });
       form.resetFields();
       message.success(initialPatient ? 'Patient modifié avec succès' : 'Patient ajouté avec succès');
@@ -172,15 +171,6 @@ const PatientForm: React.FC<PatientFormProps> = ({
           help="Format recommandé : 06 12 34 56 78 (optionnel)"
         >
           <Input placeholder="Ex: 06 12 34 56 78" />
-        </Form.Item>
-
-        <Form.Item
-          name="hasColdDelivery"
-          label="Livraison avec du froid"
-          valuePropName="checked"
-          initialValue={false}
-        >
-          <Checkbox>Ce patient nécessite une livraison avec du froid (❄️)</Checkbox>
         </Form.Item>
       </Form>
     </Modal>

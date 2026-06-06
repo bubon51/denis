@@ -43,6 +43,7 @@ const App: React.FC = () => {
     clearCurrentTour,
     // État de chargement
     isLoading,
+    toggleColdDelivery,
   } = usePatients();
 
   const [isFormVisible, setIsFormVisible] = useState(false);
@@ -189,6 +190,7 @@ const App: React.FC = () => {
                         onEdit={handleEditPatient}
                         onDelete={deletePatient}
                         onAdd={handleAddPatient}
+                        onToggleColdDelivery={toggleColdDelivery}
                       />
                     </div>
                   </>
