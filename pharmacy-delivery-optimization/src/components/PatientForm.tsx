@@ -97,30 +97,71 @@ const PatientForm: React.FC<PatientFormProps> = ({
         layout="vertical"
         name="patient_form"
       >
-        <Form.Item
-          name="nom"
-          label="Nom"
-          rules={[{ required: true, message: 'Veuillez entrer un nom' }]}
-        >
-          <Input 
-            placeholder="Nom du patient"
-            onChange={(e) => {
-              // Si on change le nom, on peut essayer de trouver un patient existant
-              const name = e.target.value;
-              const existing = existingPatients.find(p => p.nom.toLowerCase() === name.toLowerCase());
-              if (existing && !addressValue) {
-                setAddressValue(existing.adresse);
-                form.setFieldsValue({ adresse: existing.adresse });
-              }
-            }}
-          />
-        </Form.Item>
+        <div style={{ display: 'flex', gap: '16px' }}>
+          <Form.Item
+            name="prenom"
+            label="Prénom"
+            style={{ flex: 1 }}
+          >
+            <Input 
+              placeholder="Prénom (optionnel)"
+              onChange={(e) => {
+                // Si on change le prénom, essayer de trouver un patient existant
+                const prenom = e.target.value;
+                const nom = form.getFieldValue('nom');
+                if (nom) {
+                  const existing = existingPatients.find(p => 
+                    p.nom.toLowerCase() === nom.toLowerCase() &&
+                    p.prenom?.toLowerCase() === prenom.toLowerCase()
+                  );
+                  if (existing && !addressValue) {
+                    setAddressValue(existing.adresse);
+                    form.setFieldsValue({ adresse: existing.adresse });
+                  }
+                }
+              }}
+            />
+          </Form.Item>
+
+          <Form.Item
+            name="nom"
+            label="Nom"
+            rules={[{ required: true, message: 'Veuillez entrer un nom' }]}
+            style={{ flex: 1 }}
+          >
+            <Input 
+              placeholder="Nom"
+              onChange={(e) => {
+                // Si on change le nom, essayer de trouver un patient existant
+                const nom = e.target.value;
+                const prenom = form.getFieldValue('prenom');
+                if (prenom) {
+                  const existing = existingPatients.find(p => 
+                    p.nom.toLowerCase() === nom.toLowerCase() &&
+                    p.prenom?.toLowerCase() === prenom.toLowerCase()
+                  );
+                  if (existing && !addressValue) {
+                    setAddressValue(existing.adresse);
+                    form.setFieldsValue({ adresse: existing.adresse });
+                  }
+                } else {
+                  // Si pas de prénom, chercher par nom seul
+                  const existing = existingPatients.find(p => p.nom.toLowerCase() === nom.toLowerCase());
+                  if (existing && !addressValue) {
+                    setAddressValue(existing.adresse);
+                    form.setFieldsValue({ adresse: existing.adresse });
+                  }
+                }
+              }}
+            />
+          </Form.Item>
+        </div>
 
         <Form.Item
           name="adresse"
           label="Adresse"
           rules={[{ required: true, message: 'Veuillez entrer une adresse' }]}
-          help="Commencez à taper un nom ou une adresse pour voir les suggestions"
+          help="Commencez à taper un nom/prénom ou une adresse pour voir les suggestions"
         >
           <AddressAutocomplete
             value={addressValue}

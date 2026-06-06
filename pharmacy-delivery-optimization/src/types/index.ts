@@ -3,6 +3,7 @@
 export interface Patient {
   id: string;
   nom: string;
+  prenom?: string; // Prénom optionnel
   adresse: string;
   latitude: number;
   longitude: number;
@@ -23,6 +24,7 @@ export interface OptimizationResult {
 
 export interface CSVPatient {
   nom: string;
+  prenom: string;
   adresse: string;
   latitude: string;
   longitude: string;

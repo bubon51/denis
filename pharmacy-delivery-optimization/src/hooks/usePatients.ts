@@ -66,6 +66,7 @@ export const usePatients = (): UsePatientsResult => {
         latitude,
         longitude,
         isPharmacy: false,
+        prenom: patientData.prenom, // Inclure le prénom
       };
       setPatients(prev => [...prev, newPatient]);
     } catch (error) {

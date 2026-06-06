@@ -20,18 +20,17 @@ const PatientTable: React.FC<PatientTableProps> = ({
 }) => {
   const columns: ColumnsType<Patient> = [
     {
-      title: 'Nom',
-      dataIndex: 'nom',
-      key: 'nom',
-      sorter: (a, b) => a.nom.localeCompare(b.nom),
-      render: (text, record) => (
+      title: 'Nom et Prénom',
+      key: 'fullName',
+      sorter: (a, b) => `${a.prenom || ''} ${a.nom}`.localeCompare(`${b.prenom || ''} ${b.nom}`),
+      render: (_, record) => (
         <span>
           {record.isPharmacy && (
             <Tag color="blue" style={{ marginRight: 8 }}>
               Pharmacie
             </Tag>
           )}
-          {text}
+          {record.prenom && `${record.prenom} `}{record.nom}
         </span>
       ),
     },

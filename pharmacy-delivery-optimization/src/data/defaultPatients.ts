@@ -13,7 +13,8 @@ export const defaultPatients: Patient[] = [
   },
   {
     id: 'patient-1',
-    nom: 'M. Martin',
+    nom: 'Martin',
+    prenom: 'Jean',
     adresse: '15 Rue du Commerce, Saint-Denis 97400',
     latitude: -20.8821,
     longitude: 55.4508,
@@ -21,7 +22,8 @@ export const defaultPatients: Patient[] = [
   },
   {
     id: 'patient-2',
-    nom: 'Mme Durand',
+    nom: 'Durand',
+    prenom: 'Marie',
     adresse: '23 Avenue de la République, Saint-Pierre 97410',
     latitude: -21.3408,
     longitude: 55.4769,
@@ -29,7 +31,8 @@ export const defaultPatients: Patient[] = [
   },
   {
     id: 'patient-3',
-    nom: 'Dr. Bernard',
+    nom: 'Bernard',
+    prenom: 'Pierre',
     adresse: '8 Rue des Alizés, Le Tampon 97430',
     latitude: -21.2742,
     longitude: 55.5135,
@@ -37,7 +40,8 @@ export const defaultPatients: Patient[] = [
   },
   {
     id: 'patient-4',
-    nom: 'Mlle Dubois',
+    nom: 'Dubois',
+    prenom: 'Sophie',
     adresse: '45 Chemin des Fleurs, Saint-Paul 97460',
     latitude: -21.0108,
     longitude: 55.2735,
@@ -45,7 +49,8 @@ export const defaultPatients: Patient[] = [
   },
   {
     id: 'patient-5',
-    nom: 'M. Leroy',
+    nom: 'Leroy',
+    prenom: 'Paul',
     adresse: '12 Rue de la Montagne, Saint-André 97440',
     latitude: -20.9581,
     longitude: 55.6558,
@@ -53,7 +58,8 @@ export const defaultPatients: Patient[] = [
   },
   {
     id: 'patient-6',
-    nom: 'Mme Moreau',
+    nom: 'Moreau',
+    prenom: 'Claire',
     adresse: '33 Boulevard des Crêtes, Saint-Leu 97436',
     latitude: -21.1667,
     longitude: 55.3333,
@@ -61,7 +67,8 @@ export const defaultPatients: Patient[] = [
   },
   {
     id: 'patient-7',
-    nom: 'Dr. Petit',
+    nom: 'Petit',
+    prenom: 'Luc',
     adresse: '7 Rue des Écoles, Saint-Benoît 97470',
     latitude: -21.0333,
     longitude: 55.7167,
@@ -69,7 +76,8 @@ export const defaultPatients: Patient[] = [
   },
   {
     id: 'patient-8',
-    nom: 'M. Roux',
+    nom: 'Roux',
+    prenom: 'Nicolas',
     adresse: '18 Allée des Palmiers, Saint-Louis 97450',
     latitude: -21.2833,
     longitude: 55.4167,
@@ -77,7 +85,8 @@ export const defaultPatients: Patient[] = [
   },
   {
     id: 'patient-9',
-    nom: 'Mme Blanc',
+    nom: 'Blanc',
+    prenom: 'Isabelle',
     adresse: '29 Rue du Port, Saint-Gilles-les-Bains 97434',
     latitude: -21.0667,
     longitude: 55.2333,
@@ -85,7 +94,8 @@ export const defaultPatients: Patient[] = [
   },
   {
     id: 'patient-10',
-    nom: 'M. Vincent',
+    nom: 'Vincent',
+    prenom: 'Thomas',
     adresse: '5 Rue de la Plage, Étang-Salé 97427',
     latitude: -21.2667,
     longitude: 55.3667,

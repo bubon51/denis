@@ -35,16 +35,18 @@ const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
         return;
       }
 
-      // Rechercher par nom ou adresse
+      // Rechercher par nom, prénom ou adresse
       const filtered = patients.filter(p => 
         p.nom.toLowerCase().includes(searchText.toLowerCase()) ||
-        p.adresse.toLowerCase().includes(searchText.toLowerCase())
+        (p.prenom && p.prenom.toLowerCase().includes(searchText.toLowerCase())) ||
+        p.adresse.toLowerCase().includes(searchText.toLowerCase()) ||
+        `${p.prenom || ''} ${p.nom}`.toLowerCase().includes(searchText.toLowerCase())
       );
 
       // Créer des options pour l'autocomplétion
       const newOptions = filtered.map(patient => ({
         value: patient.adresse,
-        label: `${patient.nom} - ${patient.adresse}`,
+        label: `${patient.prenom || ''} ${patient.nom} - ${patient.adresse}`.trim(),
         patient,
       }));
 

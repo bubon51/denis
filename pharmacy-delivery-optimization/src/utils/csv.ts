@@ -4,6 +4,7 @@ import Papa from 'papaparse';
 // Convertir Patient en CSVPatient (pour l'export)
 const patientToCSV = (patient: Patient): CSVPatient => ({
   nom: patient.nom,
+  prenom: patient.prenom || '',
   adresse: patient.adresse,
   latitude: patient.latitude.toString(),
   longitude: patient.longitude.toString(),
@@ -13,6 +14,7 @@ const patientToCSV = (patient: Patient): CSVPatient => ({
 const csvToPatient = (csv: CSVPatient, id: string): Patient => ({
   id,
   nom: csv.nom,
+  prenom: csv.prenom || undefined,
   adresse: csv.adresse,
   latitude: parseFloat(csv.latitude),
   longitude: parseFloat(csv.longitude),
