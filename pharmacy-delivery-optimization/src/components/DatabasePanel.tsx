@@ -24,7 +24,6 @@ const DatabasePanel: React.FC<DatabasePanelProps> = ({
     nom: '',
     prenom: '',
     adresse: '',
-    tempsLivraison: 10,
   });
 
   const handleSelectPatient = (patientId: string) => {
@@ -64,14 +63,12 @@ const DatabasePanel: React.FC<DatabasePanelProps> = ({
         nom: newPatient.nom,
         prenom: newPatient.prenom,
         adresse: newPatient.adresse,
-        tempsLivraison: newPatient.tempsLivraison,
       });
       message.success('Patient ajouté à la base de données');
       setNewPatient({
         nom: '',
         prenom: '',
         adresse: '',
-        tempsLivraison: 10,
       });
       setIsModalVisible(false);
     } catch (error) {
@@ -201,14 +198,10 @@ const DatabasePanel: React.FC<DatabasePanelProps> = ({
             onChange={(e) => setNewPatient({ ...newPatient, adresse: e.target.value })}
             required
           />
-          <Input
-            placeholder="Temps de livraison (minutes)"
-            type="number"
-            value={newPatient.tempsLivraison}
-            onChange={(e) => setNewPatient({ ...newPatient, tempsLivraison: parseInt(e.target.value) || 10 })}
-          />
           <Text type="secondary" style={{ fontSize: '12px' }}>
             * Les coordonnées GPS seront automatiquement déterminées à partir de l'adresse.
+            <br />
+            * Temps de livraison fixe : 1 minute par patient
           </Text>
         </Space>
       </Modal>

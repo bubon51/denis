@@ -141,9 +141,6 @@ const MapView: React.FC<MapViewProps> = ({
                 <p style={{ margin: '4px 0', fontSize: '12px' }}>
                   Coordonnées: {patient.latitude.toFixed(4)}, {patient.longitude.toFixed(4)}
                 </p>
-                <p style={{ margin: '4px 0', fontSize: '12px' }}>
-                  Temps livraison: {patient.tempsLivraison} min
-                </p>
                 {optimizationResult && (
                   <p style={{ margin: '4px 0', fontSize: '12px', color: '#52c41a' }}>
                     Ordre: {optimizationResult.route.find((rp) => rp.patient.id === patient.id)?.order! + 1 || 'Non inclus'}

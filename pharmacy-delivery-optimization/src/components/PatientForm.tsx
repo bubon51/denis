@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, Form, Input, InputNumber, Button, message, Spin, AutoComplete } from 'antd';
+import { Modal, Form, Input, Button, message, Spin, AutoComplete } from 'antd';
 import { Patient } from '../types';
 
 interface PatientFormProps {
@@ -60,7 +60,6 @@ const PatientForm: React.FC<PatientFormProps> = ({
         nom: values.nom,
         prenom: values.prenom || '',
         adresse: values.adresse,
-        tempsLivraison: values.tempsLivraison || 0,
       });
       form.resetFields();
       message.success(initialPatient ? 'Patient modifié avec succès' : 'Patient ajouté avec succès');
@@ -162,22 +161,6 @@ const PatientForm: React.FC<PatientFormProps> = ({
               option?.value?.toLowerCase().includes(inputValue.toLowerCase()) ||
               true)
             }
-          />
-        </Form.Item>
-
-        <Form.Item
-          name="tempsLivraison"
-          label="Temps de livraison (minutes)"
-          rules={[
-            { required: true, message: 'Veuillez entrer un temps de livraison' },
-            { type: 'number', min: 0, max: 120, message: 'Le temps doit être entre 0 et 120 minutes' },
-          ]}
-        >
-          <InputNumber
-            placeholder="Temps de livraison"
-            min={0}
-            max={120}
-            style={{ width: '100%' }}
           />
         </Form.Item>
       </Form>

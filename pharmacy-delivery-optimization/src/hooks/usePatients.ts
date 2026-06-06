@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { Patient, OptimizationResult, DEFAULT_PHARMACY } from '../types';
+import { Patient, OptimizationResult, DEFAULT_PHARMACY, DELIVERY_TIME_PER_PATIENT } from '../types';
 import { getDefaultPatients } from '../data/defaultPatients';
 import { optimizeRoute as optimizeRouteFunction } from '../utils/tsp';
 import { exportToCSV, importFromCSV } from '../utils/csv';
@@ -95,7 +95,7 @@ export const usePatients = (): UsePatientsResult => {
     );
   }, [patients, searchQuery])();
 
-  // Ajouter un patient avec géocodage automatique
+  // Ajouter un patient avec géocodage automatique (à la tournée ET à la base de données)
   const addPatient = useCallback(async (patientData: Omit<Patient, 'id' | 'isPharmacy' | 'latitude' | 'longitude'>) => {
     setIsGeocoding(true);
     try {
@@ -109,7 +109,22 @@ export const usePatients = (): UsePatientsResult => {
         longitude,
         isPharmacy: false,
       };
+      
+      // Ajouter à la tournée actuelle
       setPatients(prev => [...prev, newPatient]);
+      
+      // Ajouter aussi à la base de données (si le patient n'existe pas déjà)
+      setDatabasePatients(prev => {
+        const exists = prev.some(p => 
+          p.nom.toLowerCase() === patientData.nom.toLowerCase() &&
+          p.prenom.toLowerCase() === (patientData.prenom || '').toLowerCase() &&
+          p.adresse.toLowerCase() === patientData.adresse.toLowerCase()
+        );
+        if (!exists) {
+          return [...prev, newPatient];
+        }
+        return prev;
+      });
     } catch (error) {
       console.error('Erreur de géocodage:', error);
       throw error;
@@ -180,13 +195,19 @@ export const usePatients = (): UsePatientsResult => {
       
       // Calculer les métriques réelles via OSRM
       const distance = await calculateRouteDistance(waypoints);
-      const time = await calculateRouteTime(waypoints);
+      const drivingTime = await calculateRouteTime(waypoints);
+      
+      // Calculer le temps total : temps de trajet + temps de livraison (1 min par patient)
+      // Compter le nombre de patients (exclure la pharmacie du compte de livraison)
+      const patientCount = patients.filter(p => !p.isPharmacy).length;
+      const deliveryTime = patientCount * DELIVERY_TIME_PER_PATIENT;
+      const totalTime = drivingTime + deliveryTime;
       
       // Mettre à jour le résultat avec les distances réelles
       setOptimizationResult({
         ...result,
         totalDistance: Math.round(distance * 100) / 100,
-        totalTime: time,
+        totalTime: totalTime,
       });
     } catch (error) {
       console.error('Erreur lors de l\'optimisation:', error);

@@ -7,9 +7,11 @@ export interface Patient {
   adresse: string;
   latitude: number;
   longitude: number;
-  tempsLivraison: number; // en minutes
   isPharmacy?: boolean; // Point de départ (pharmacie)
 }
+
+// Temps de livraison fixe pour chaque patient (1 minute)
+export const DELIVERY_TIME_PER_PATIENT = 1; // en minutes
 
 export interface RoutePoint {
   patient: Patient;
@@ -29,7 +31,6 @@ export interface CSVPatient {
   adresse: string;
   latitude: string;
   longitude: string;
-  tempsLivraison: string;
 }
 
 // Coordonnées pour La Réunion (centre approximatif)
@@ -50,6 +51,5 @@ export const DEFAULT_PHARMACY: Patient = {
   adresse: '133 Avenue du Mahatma Gandhi, 97441 Sainte-Suzanne',
   latitude: -20.9333,
   longitude: 55.6167,
-  tempsLivraison: 0,
   isPharmacy: true,
 };
