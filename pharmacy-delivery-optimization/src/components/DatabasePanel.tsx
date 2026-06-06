@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Card, Button, List, Checkbox, Modal, message, Input, Space, Typography } from 'antd';
-import { DatabaseOutlined, PlusOutlined, DeleteOutlined, CheckOutlined } from '@ant-design/icons';
+import { DatabaseOutlined, PlusOutlined, CheckOutlined } from '@ant-design/icons';
 import { Patient } from '../types';
 
 interface DatabasePanelProps {
@@ -10,7 +10,7 @@ interface DatabasePanelProps {
   isGeocoding: boolean;
 }
 
-const { Text, Title } = Typography;
+const { Text } = Typography;
 
 const DatabasePanel: React.FC<DatabasePanelProps> = ({
   databasePatients,
