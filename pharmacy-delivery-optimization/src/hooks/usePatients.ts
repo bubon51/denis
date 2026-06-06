@@ -1,5 +1,5 @@
-import { useState, useCallback, useEffect } from 'react';
-import { Patient, OptimizationResult, DEFAULT_PHARMACY, DELIVERY_TIME_PER_PATIENT } from '../types';
+import { useState, useCallback, useEffect, useMemo } from 'react';
+import { Patient, DatabasePatient, OptimizationResult, DEFAULT_PHARMACY, DELIVERY_TIME_PER_PATIENT } from '../types';
 import { getDefaultPatients } from '../data/defaultPatients';
 import { optimizeRoute as optimizeRouteFunction } from '../utils/tsp';
 import { exportToCSV, importFromCSV } from '../utils/csv';
@@ -31,8 +31,8 @@ interface UsePatientsResult {
   routePolyline: [number, number][] | null;
   getPatientByName: (nom: string, prenom: string) => Patient | undefined;
   // Nouvelle fonctionnalité : base de données de patients
-  databasePatients: Patient[];
-  addToDatabase: (patient: Omit<Patient, 'id' | 'isPharmacy' | 'latitude' | 'longitude'>) => Promise<void>;
+  databasePatients: DatabasePatient[];
+  addToDatabase: (patient: Omit<DatabasePatient, 'id' | 'isPharmacy' | 'latitude' | 'longitude'>) => Promise<void>;
   loadFromDatabase: (patientIds: string[]) => void;
   clearCurrentTour: () => void;
   // État de chargement initial
@@ -62,7 +62,7 @@ export const usePatients = (): UsePatientsResult => {
   const [patients, _setPatients] = useState<Patient[]>([]);
   
   // État pour les patients de la base de données locale
-  const [databasePatients, _setDatabasePatients] = useState<Patient[]>([]);
+  const [databasePatients, _setDatabasePatients] = useState<DatabasePatient[]>([]);
 
   const [optimizationResult, setOptimizationResult] = useState<OptimizationResult | null>(null);
   const [isOptimizing, setIsOptimizing] = useState<boolean>(false);
@@ -79,7 +79,7 @@ export const usePatients = (): UsePatientsResult => {
   }, []);
 
   // Wrapper pour setDatabasePatients
-  const setDatabasePatients = useCallback((patients: Patient[] | ((prev: Patient[]) => Patient[])) => {
+  const setDatabasePatients = useCallback((patients: DatabasePatient[] | ((prev: DatabasePatient[]) => DatabasePatient[])) => {
     _setDatabasePatients(prev => {
       const newPatients = typeof patients === 'function' ? patients(prev) : patients;
       return newPatients;
@@ -163,8 +163,8 @@ export const usePatients = (): UsePatientsResult => {
     return () => clearTimeout(timer);
   }, [databasePatients, isLoading]);
 
-  // Filtrer les patients en fonction de la recherche
-  const filteredPatients = useCallback(() => {
+  // Filtrer les patients en fonction de la recherche (avec useMemo pour optimiser)
+  const filteredPatients = useMemo(() => {
     if (!searchQuery.trim()) return patients;
     const query = searchQuery.toLowerCase();
     return patients.filter(p => 
@@ -173,7 +173,7 @@ export const usePatients = (): UsePatientsResult => {
       p.adresse.toLowerCase().includes(query) ||
       `${p.prenom} ${p.nom}`.toLowerCase().includes(query)
     );
-  }, [patients, searchQuery])();
+  }, [patients, searchQuery]);
 
   // Ajouter un patient avec géocodage automatique (à la tournée ET à la base de données)
   const addPatient = useCallback(async (patientData: Omit<Patient, 'id' | 'isPharmacy' | 'latitude' | 'longitude'>) => {
@@ -197,6 +197,18 @@ export const usePatients = (): UsePatientsResult => {
       });
       
       // Ajouter aussi à la base de données (si le patient n'existe pas déjà)
+      // Filtrer hasColdDelivery pour la base de données
+      const newDatabasePatient: DatabasePatient = {
+        id: newPatient.id,
+        nom: newPatient.nom,
+        prenom: newPatient.prenom,
+        adresse: newPatient.adresse,
+        latitude: newPatient.latitude,
+        longitude: newPatient.longitude,
+        isPharmacy: newPatient.isPharmacy,
+        phone: newPatient.phone,
+      };
+      
       setDatabasePatients(prev => {
         const exists = prev.some(p => 
           p.nom.toLowerCase() === patientData.nom.toLowerCase() &&
@@ -204,7 +216,7 @@ export const usePatients = (): UsePatientsResult => {
           p.adresse.toLowerCase() === patientData.adresse.toLowerCase()
         );
         if (!exists) {
-          return [...prev, newPatient];
+          return [...prev, newDatabasePatient];
         }
         return prev;
       });
@@ -240,8 +252,20 @@ export const usePatients = (): UsePatientsResult => {
       
       // Mettre à jour aussi dans la base de données si le patient y est présent
       // (pour maintenir la cohérence entre tournée et base de données)
+      // Filtrer hasColdDelivery pour la base de données
+      const updatedDatabasePatient: DatabasePatient = {
+        id: updatedPatient.id,
+        nom: updatedPatient.nom,
+        prenom: updatedPatient.prenom,
+        adresse: updatedPatient.adresse,
+        latitude: updatedPatient.latitude,
+        longitude: updatedPatient.longitude,
+        isPharmacy: updatedPatient.isPharmacy,
+        phone: updatedPatient.phone,
+      };
+      
       setDatabasePatients(prev => 
-        prev.map(p => p.id === id ? updatedPatient : p)
+        prev.map(p => p.id === id ? updatedDatabasePatient : p)
       );
     } catch (error) {
       console.error('Erreur de géocodage:', error);
@@ -321,7 +345,13 @@ export const usePatients = (): UsePatientsResult => {
   // Importer depuis CSV
   const importPatients = useCallback((csvContent: string) => {
     try {
-      const importedPatients = importFromCSV(csvContent);
+      const importedDatabasePatients = importFromCSV(csvContent);
+      // Convertir DatabasePatient en Patient (ajouter hasColdDelivery par défaut à false)
+      const importedPatients: Patient[] = importedDatabasePatients.map(dbPatient => ({
+        ...dbPatient,
+        hasColdDelivery: false, // Par défaut, pas de livraison avec du froid
+      }));
+      
       // Toujours utiliser la DEFAULT_PHARMACY, pas celle de l'import
       setPatients(() => {
         const newPatients = [...importedPatients];
@@ -342,7 +372,12 @@ export const usePatients = (): UsePatientsResult => {
 
   // Réinitialiser aux données par défaut
   const resetToDefault = useCallback(() => {
-    setPatients(getDefaultPatients());
+    // getDefaultPatients retourne Patient[], mais on veut s'assurer que hasColdDelivery est false
+    const defaultPatients = getDefaultPatients().map(p => ({
+      ...p,
+      hasColdDelivery: false, // Réinitialiser hasColdDelivery
+    }));
+    setPatients(defaultPatients);
     setOptimizationResult(null);
     setRoutePolyline(null);
     setSearchQuery('');
@@ -358,13 +393,13 @@ export const usePatients = (): UsePatientsResult => {
   }, [patients]);
 
   // Ajouter un patient à la base de données (sans la pharmacie)
-  const addToDatabase = useCallback(async (patientData: Omit<Patient, 'id' | 'isPharmacy' | 'latitude' | 'longitude'>) => {
+  const addToDatabase = useCallback(async (patientData: Omit<DatabasePatient, 'id' | 'isPharmacy' | 'latitude' | 'longitude'>) => {
     setIsGeocoding(true);
     try {
       // Géocoder l'adresse pour obtenir les coordonnées
       const { latitude, longitude } = await geocodeAddress(patientData.adresse);
       
-      const newPatient: Patient = {
+      const newDatabasePatient: DatabasePatient = {
         ...patientData,
         id: `db-patient-${Date.now()}`,
         latitude,
@@ -380,7 +415,7 @@ export const usePatients = (): UsePatientsResult => {
       );
       
       if (!exists) {
-        setDatabasePatients(prev => [...prev, newPatient]);
+        setDatabasePatients(prev => [...prev, newDatabasePatient]);
       }
     } catch (error) {
       console.error('Erreur de géocodage:', error);
@@ -392,7 +427,13 @@ export const usePatients = (): UsePatientsResult => {
 
   // Charger des patients depuis la base de données dans la tournée actuelle
   const loadFromDatabase = useCallback((patientIds: string[]) => {
-    const selectedPatients = databasePatients.filter(p => patientIds.includes(p.id));
+    const selectedDatabasePatients = databasePatients.filter(p => patientIds.includes(p.id));
+    // Convertir DatabasePatient en Patient (ajouter hasColdDelivery par défaut à false)
+    const selectedPatients: Patient[] = selectedDatabasePatients.map(dbPatient => ({
+      ...dbPatient,
+      hasColdDelivery: false, // Par défaut, pas de livraison avec du froid
+    }));
+    
     // Ajouter les patients sélectionnés à la tournée actuelle (sans dupliquer la pharmacie)
     setPatients(prev => {
       const pharmacy = prev.find(p => p.isPharmacy);
@@ -406,7 +447,12 @@ export const usePatients = (): UsePatientsResult => {
 
   // Supprimer tous les patients de la tournée actuelle (sauf la pharmacie)
   const clearCurrentTour = useCallback(() => {
-    setPatients([DEFAULT_PHARMACY]);
+    // S'assurer que DEFAULT_PHARMACY n'a pas hasColdDelivery
+    const pharmacyWithoutColdDelivery: Patient = {
+      ...DEFAULT_PHARMACY,
+      hasColdDelivery: false,
+    };
+    setPatients([pharmacyWithoutColdDelivery]);
     setOptimizationResult(null);
     setRoutePolyline(null);
     setSearchQuery('');
