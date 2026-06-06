@@ -46,7 +46,7 @@ export const REUNION_BOUNDS: [[number, number], [number, number]] = [
 // Pharmacie par défaut (point de départ)
 export const DEFAULT_PHARMACY: Patient = {
   id: 'pharmacy-1',
-  nom: 'Pharmacie Centrale',
+  nom: 'Pharmacie de l\'Océan Indien',
   prenom: '',
   adresse: '133 Avenue du Mahatma Gandhi, 97441 Sainte-Suzanne',
   latitude: -20.9320073477941,

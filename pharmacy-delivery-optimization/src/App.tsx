@@ -192,7 +192,7 @@ const App: React.FC = () => {
       <Footer style={{ textAlign: 'center', padding: '16px 24px' }}>
         <Text type="secondary">
           Application d'optimisation des tournées de livraison - La Réunion | 
-          Pharmacie: 133 Avenue du Mahatma Gandhi, 97441 Sainte-Suzanne
+          Pharmacie de l'Océan Indien: 133 Avenue du Mahatma Gandhi, 97441 Sainte-Suzanne
         </Text>
       </Footer>
 
