@@ -2,8 +2,6 @@ import React from 'react';
 import { Input, Space } from 'antd';
 import { SearchOutlined } from '@ant-design/icons';
 
-const { Search } = Input;
-
 interface SearchBarProps {
   value: string;
   onChange: (value: string) => void;

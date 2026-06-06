@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { Patient, OptimizationResult } from '../types';
 import { getDefaultPatients } from '../data/defaultPatients';
-import { optimizeRoute } from '../utils/tsp';
+import { optimizeRoute as optimizeRouteFunction } from '../utils/tsp';
 import { exportToCSV, importFromCSV } from '../utils/csv';
 import { geocodeAddress } from '../utils/geocoding';
 
@@ -120,7 +120,7 @@ export const usePatients = (): UsePatientsResult => {
     // et permettre à l'UI de montrer l'état de chargement
     setTimeout(() => {
       try {
-        const result = optimizeRoute(patients);
+        const result = optimizeRouteFunction(patients);
         setOptimizationResult(result);
       } catch (error) {
         console.error('Erreur lors de l\'optimisation:', error);
@@ -142,7 +142,7 @@ export const usePatients = (): UsePatientsResult => {
       // Conserver la pharmacie existante si elle existe
       const existingPharmacy = patients.find(p => p.isPharmacy);
       
-      setPatients(prev => {
+      setPatients(() => {
         const newPatients = [...importedPatients];
         // Ajouter la pharmacie existante si elle n'est pas dans l'import
         if (existingPharmacy && !importedPatients.some(p => p.isPharmacy)) {

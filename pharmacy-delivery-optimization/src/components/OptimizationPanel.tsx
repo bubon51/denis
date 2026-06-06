@@ -2,7 +2,7 @@ import React from 'react';
 import { Card, Button, Spin, Statistic, Row, Col, Typography, Space, Alert } from 'antd';
 import { OptimizationResult } from '../types';
 
-const { Title, Text } = Typography;
+const { Text } = Typography;
 
 interface OptimizationPanelProps {
   result: OptimizationResult | null;

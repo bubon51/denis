@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
-import { Patient, RoutePoint, OptimizationResult } from '../types';
+import { Patient, OptimizationResult } from '../types';
 import { REUNION_CENTER, REUNION_ZOOM, REUNION_BOUNDS } from '../types';
 
 // Correction des icônes Leaflet (nécessaire pour React 18+)
@@ -122,7 +122,7 @@ const MapView: React.FC<MapViewProps> = ({
 
                 {optimizationResult && (
                   <p style={{ margin: '4px 0', fontSize: '12px', color: '#52c41a' }}>
-                    Ordre: {optimizationResult.route.find(rp => rp.patient.id === patient.id)?.order + 1 || 'Non inclus'}
+                    Ordre: {optimizationResult.route.find((rp) => rp.patient.id === patient.id)?.order! + 1 || 'Non inclus'}
                   </p>
                 )}
               </div>
