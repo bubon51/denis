@@ -182,6 +182,7 @@ export const usePatients = (): UsePatientsResult => {
       );
       
       // Mettre à jour aussi dans la base de données si le patient y est présent
+      // (pour maintenir la cohérence entre tournée et base de données)
       setDatabasePatients(prev => 
         prev.map(p => p.id === id ? updatedPatient : p)
       );
@@ -204,13 +205,10 @@ export const usePatients = (): UsePatientsResult => {
       return prev.filter(p => p.id !== id);
     });
     
-    // Supprimer aussi de la base de données si présent
-    setDatabasePatients(prev => prev.filter(p => p.id !== id));
-    
     // Réinitialiser l'optimisation car la liste des patients a changé
     setOptimizationResult(null);
     setRoutePolyline(null);
-  }, [setPatients, setDatabasePatients, setOptimizationResult, setRoutePolyline]);
+  }, [setPatients, setOptimizationResult, setRoutePolyline]);
 
   // Optimiser l'itinéraire avec calcul des distances routières
   const optimizeRoute = useCallback(async () => {
