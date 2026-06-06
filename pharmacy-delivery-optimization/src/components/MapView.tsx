@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
+import React, { useEffect, useState, useRef } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { Patient, OptimizationResult } from '../types';
 import { REUNION_CENTER, REUNION_ZOOM, REUNION_BOUNDS } from '../types';
@@ -160,11 +160,7 @@ const MapView: React.FC<MapViewProps> = ({
 
 // Composant wrapper pour utiliser useMap
 const MapViewWrapper: React.FC<MapViewProps> = (props) => {
-  const mapRef = useRef<L.Map | null>(null);
-  
-  return (
-    <MapView {...props} />
-  );
+  return <MapView {...props} />;
 };
 
 export default MapViewWrapper;

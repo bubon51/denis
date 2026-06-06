@@ -159,9 +159,9 @@ const PatientForm: React.FC<PatientFormProps> = ({
             onChange={(value) => form.setFieldsValue({ adresse: value })}
             placeholder="Ex: 133 Avenue du Mahatma Gandhi, 97441 Sainte-Suzanne"
             filterOption={(inputValue, option) => 
-              option?.label?.toLowerCase().includes(inputValue.toLowerCase()) ||
+              (option?.label?.toLowerCase().includes(inputValue.toLowerCase()) ||
               option?.value?.toLowerCase().includes(inputValue.toLowerCase()) ||
-              true
+              true)
             }
           />
         </Form.Item>
