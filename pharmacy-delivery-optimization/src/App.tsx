@@ -44,6 +44,7 @@ const App: React.FC = () => {
     // État de chargement
     isLoading,
     toggleColdDelivery,
+    reorderPatients,
   } = usePatients();
 
   const [isFormVisible, setIsFormVisible] = useState(false);
@@ -186,11 +187,12 @@ const App: React.FC = () => {
                         Liste des patients ({filteredPatients.length})
                       </Title>
                       <PatientTable
-                        patients={filteredPatients}
+                        patients={patients}
                         onEdit={handleEditPatient}
                         onDelete={deletePatient}
                         onAdd={handleAddPatient}
                         onToggleColdDelivery={toggleColdDelivery}
+                        onReorder={reorderPatients}
                       />
                     </div>
                   </>

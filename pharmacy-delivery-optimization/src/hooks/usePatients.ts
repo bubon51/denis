@@ -40,6 +40,8 @@ interface UsePatientsResult {
   isLoading: boolean;
   // Fonction pour basculer hasColdDelivery
   toggleColdDelivery: (id: string, hasColdDelivery: boolean) => void;
+  // Fonction pour réorganiser les patients (Drag & Drop)
+  reorderPatients: (startIndex: number, endIndex: number) => void;
 }
 
 // Fonction pour normaliser les patients et s'assurer que la pharmacie a les bonnes coordonnées
@@ -455,6 +457,29 @@ export const usePatients = (): UsePatientsResult => {
     setRoutePolyline(null);
   }, [setPatients, setOptimizationResult, setRoutePolyline]);
 
+  // Réorganiser les patients (Drag & Drop)
+  const reorderPatients = useCallback((startIndex: number, endIndex: number) => {
+    setPatients(prev => {
+      // Ne pas réorganiser la pharmacie (elle doit toujours être en premier)
+      const pharmacy = prev.find(p => p.isPharmacy);
+      if (!pharmacy) return prev;
+      
+      // Filtrer les patients non-pharmacie
+      const nonPharmacyPatients = prev.filter(p => !p.isPharmacy);
+      
+      // Réorganiser les patients non-pharmacie
+      const [removed] = nonPharmacyPatients.splice(startIndex - 1, 1); // -1 car la pharmacie est en index 0
+      nonPharmacyPatients.splice(endIndex - 1, 0, removed);
+      
+      // Reconstruire la liste avec la pharmacie en premier
+      return [pharmacy, ...nonPharmacyPatients];
+    });
+    
+    // Réinitialiser l'optimisation car l'ordre a changé
+    setOptimizationResult(null);
+    setRoutePolyline(null);
+  }, [setPatients, setOptimizationResult, setRoutePolyline]);
+
   return {
     patients,
     setPatients,
@@ -482,5 +507,7 @@ export const usePatients = (): UsePatientsResult => {
     isLoading,
     // Fonction pour basculer hasColdDelivery
     toggleColdDelivery,
+    // Fonction pour réorganiser les patients (Drag & Drop)
+    reorderPatients,
   };
 };

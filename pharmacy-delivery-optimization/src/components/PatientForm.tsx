@@ -22,6 +22,7 @@ const PatientForm: React.FC<PatientFormProps> = ({
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [addressOptions, setAddressOptions] = useState<{ value: string; label: string }[]>([]);
+  const [isDuplicate, setIsDuplicate] = useState(false);
 
   useEffect(() => {
     if (initialPatient) {
@@ -30,6 +31,25 @@ const PatientForm: React.FC<PatientFormProps> = ({
       form.resetFields();
     }
   }, [initialPatient, form]);
+
+  // Vérifier les doublons à chaque changement de nom, prénom ou adresse
+  const checkForDuplicates = () => {
+    const values = form.getFieldsValue();
+    if (!values.nom || !values.adresse) {
+      setIsDuplicate(false);
+      return;
+    }
+
+    const key = `${values.nom.toLowerCase()}|${(values.prenom || '').toLowerCase()}|${values.adresse.toLowerCase()}`;
+    const hasDuplicate = existingPatients.some(p => {
+      if (p.isPharmacy) return false;
+      if (initialPatient && p.id === initialPatient.id) return false; // Ignorer le patient en cours de modification
+      const existingKey = `${p.nom.toLowerCase()}|${p.prenom.toLowerCase()}|${p.adresse.toLowerCase()}`;
+      return existingKey === key;
+    });
+
+    setIsDuplicate(hasDuplicate);
+  };
 
   // Mettre à jour les options d'autocomplétion
   const updateAddressOptions = (nom?: string, prenom?: string) => {
@@ -76,16 +96,25 @@ const PatientForm: React.FC<PatientFormProps> = ({
     const nom = e.target.value;
     const prenom = form.getFieldValue('prenom');
     updateAddressOptions(nom, prenom);
+    checkForDuplicates();
   };
 
   const handlePrenomChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const prenom = e.target.value;
     const nom = form.getFieldValue('nom');
     updateAddressOptions(nom, prenom);
+    checkForDuplicates();
+  };
+
+  const handleAddressChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const adresse = e.target.value;
+    form.setFieldsValue({ adresse });
+    checkForDuplicates();
   };
 
   const handleAddressSelect = (value: string) => {
     form.setFieldsValue({ adresse: value });
+    checkForDuplicates();
   };
 
   return (
@@ -102,7 +131,8 @@ const PatientForm: React.FC<PatientFormProps> = ({
           type="primary"
           onClick={handleSubmit}
           loading={loading || isGeocoding}
-          disabled={isGeocoding}
+          disabled={isGeocoding || isDuplicate}
+          title={isDuplicate ? 'Un patient avec ces informations existe déjà' : undefined}
         >
           {isGeocoding ? 'Géocodage en cours...' : (initialPatient ? 'Modifier' : 'Ajouter')}
         </Button>,
@@ -113,6 +143,20 @@ const PatientForm: React.FC<PatientFormProps> = ({
       {isGeocoding && (
         <div style={{ textAlign: 'center', marginBottom: 16 }}>
           <Spin tip="Recherche des coordonnées GPS..." />
+        </div>
+      )}
+      
+      {isDuplicate && !initialPatient && (
+        <div style={{ 
+          textAlign: 'center', 
+          marginBottom: 16,
+          color: '#faad14',
+          backgroundColor: '#fffbe6',
+          padding: '8px',
+          borderRadius: '4px',
+          border: '1px solid #ffd591'
+        }}>
+          ⚠️ Un patient avec ces informations (nom, prénom, adresse) existe déjà.
         </div>
       )}
       
@@ -155,7 +199,7 @@ const PatientForm: React.FC<PatientFormProps> = ({
           <AutoComplete
             options={addressOptions}
             onSelect={handleAddressSelect}
-            onChange={(value) => form.setFieldsValue({ adresse: value })}
+            onChange={handleAddressChange}
             placeholder="Ex: 133 Avenue du Mahatma Gandhi, 97441 Sainte-Suzanne"
             filterOption={(inputValue, option) => 
               (option?.label?.toLowerCase().includes(inputValue.toLowerCase()) ||
