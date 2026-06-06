@@ -24,10 +24,16 @@ interface UsePatientsResult {
   isGeocoding: boolean;
   routePolyline: [number, number][] | null;
   getPatientByName: (nom: string, prenom: string) => Patient | undefined;
+  // Nouvelle fonctionnalité : base de données de patients
+  databasePatients: Patient[];
+  addToDatabase: (patient: Omit<Patient, 'id' | 'isPharmacy' | 'latitude' | 'longitude'>) => Promise<void>;
+  loadFromDatabase: (patientIds: string[]) => void;
+  clearCurrentTour: () => void;
 }
 
-// Clé pour le localStorage
+// Clés pour le localStorage
 const STORAGE_KEY = 'pharmacy-delivery-patients';
+const DATABASE_KEY = 'pharmacy-delivery-database';
 
 export const usePatients = (): UsePatientsResult => {
   const [patients, setPatients] = useState<Patient[]>(() => {
@@ -48,6 +54,19 @@ export const usePatients = (): UsePatientsResult => {
     return getDefaultPatients();
   });
   
+  // Base de données de patients (sans la pharmacie)
+  const [databasePatients, setDatabasePatients] = useState<Patient[]>(() => {
+    const saved = localStorage.getItem(DATABASE_KEY);
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch {
+        return [];
+      }
+    }
+    return [];
+  });
+  
   const [optimizationResult, setOptimizationResult] = useState<OptimizationResult | null>(null);
   const [isOptimizing, setIsOptimizing] = useState<boolean>(false);
   const [isGeocoding, setIsGeocoding] = useState<boolean>(false);
@@ -58,6 +77,11 @@ export const usePatients = (): UsePatientsResult => {
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(patients));
   }, [patients]);
+
+  // Sauvegarder la base de données dans localStorage
+  useEffect(() => {
+    localStorage.setItem(DATABASE_KEY, JSON.stringify(databasePatients));
+  }, [databasePatients]);
 
   // Filtrer les patients en fonction de la recherche
   const filteredPatients = useCallback(() => {
@@ -214,6 +238,58 @@ export const usePatients = (): UsePatientsResult => {
     );
   }, [patients]);
 
+  // Ajouter un patient à la base de données (sans la pharmacie)
+  const addToDatabase = useCallback(async (patientData: Omit<Patient, 'id' | 'isPharmacy' | 'latitude' | 'longitude'>) => {
+    setIsGeocoding(true);
+    try {
+      // Géocoder l'adresse pour obtenir les coordonnées
+      const { latitude, longitude } = await geocodeAddress(patientData.adresse);
+      
+      const newPatient: Patient = {
+        ...patientData,
+        id: `db-patient-${Date.now()}`,
+        latitude,
+        longitude,
+        isPharmacy: false,
+      };
+      
+      // Vérifier que le patient n'existe pas déjà (par nom+prénom+adresse)
+      const exists = databasePatients.some(p => 
+        p.nom.toLowerCase() === patientData.nom.toLowerCase() &&
+        p.prenom.toLowerCase() === (patientData.prenom || '').toLowerCase() &&
+        p.adresse.toLowerCase() === patientData.adresse.toLowerCase()
+      );
+      
+      if (!exists) {
+        setDatabasePatients(prev => [...prev, newPatient]);
+      }
+    } catch (error) {
+      console.error('Erreur de géocodage:', error);
+      throw error;
+    } finally {
+      setIsGeocoding(false);
+    }
+  }, [databasePatients]);
+
+  // Charger des patients depuis la base de données dans la tournée actuelle
+  const loadFromDatabase = useCallback((patientIds: string[]) => {
+    const selectedPatients = databasePatients.filter(p => patientIds.includes(p.id));
+    // Ajouter les patients sélectionnés à la tournée actuelle (sans dupliquer la pharmacie)
+    setPatients(prev => {
+      const pharmacy = prev.find(p => p.isPharmacy);
+      const newPatients = [...pharmacy ? [pharmacy] : [], ...selectedPatients];
+      return newPatients;
+    });
+  }, [databasePatients]);
+
+  // Supprimer tous les patients de la tournée actuelle (sauf la pharmacie)
+  const clearCurrentTour = useCallback(() => {
+    setPatients([DEFAULT_PHARMACY]);
+    setOptimizationResult(null);
+    setRoutePolyline(null);
+    setSearchQuery('');
+  }, []);
+
   return {
     patients,
     setPatients,
@@ -232,5 +308,10 @@ export const usePatients = (): UsePatientsResult => {
     isGeocoding,
     routePolyline,
     getPatientByName,
+    // Base de données
+    databasePatients,
+    addToDatabase,
+    loadFromDatabase,
+    clearCurrentTour,
   };
 };
