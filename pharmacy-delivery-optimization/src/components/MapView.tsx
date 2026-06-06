@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { MapContainer, TileLayer, Popup, Polyline, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Popup, Polyline, useMap, Marker } from 'react-leaflet';
 import MarkerClusterGroup from 'react-leaflet-markercluster';
 import L from 'leaflet';
 import { Patient, OptimizationResult } from '../types';
@@ -25,7 +25,7 @@ const pharmacyIcon = L.icon({
 });
 
 // Personnalisation des icônes de cluster
-const createClusterIcon = (cluster: L.MarkerCluster) => {
+const createClusterIcon = (cluster: any) => {
   const count = cluster.getChildCount();
   const size = count < 10 ? 'small' : count < 100 ? 'medium' : 'large';
   
@@ -88,7 +88,7 @@ const PatientMarker: React.FC<{
     : null;
 
   return (
-    <L.Marker
+    <Marker
       position={[patient.latitude, patient.longitude] as L.LatLngExpression}
       icon={patient.isPharmacy ? pharmacyIcon : defaultIcon}
     >
@@ -113,7 +113,7 @@ const PatientMarker: React.FC<{
           )}
         </div>
       </Popup>
-    </L.Marker>
+    </Marker>
   );
 };
 

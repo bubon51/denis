@@ -10,7 +10,7 @@ import SearchBar from './components/SearchBar';
 import DatabasePanel from './components/DatabasePanel';
 import PWAInstaller from './components/PWAInstallPrompt';
 import { Patient } from './types';
-import { DeleteOutlined, ClusterOutlined } from '@ant-design/icons';
+import { DeleteOutlined } from '@ant-design/icons';
 
 const { Header, Content, Footer } = Layout;
 const { Title, Text } = Typography;

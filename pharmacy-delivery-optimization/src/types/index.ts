@@ -8,6 +8,8 @@ export interface Patient {
   latitude: number;
   longitude: number;
   isPharmacy?: boolean; // Point de départ (pharmacie)
+  phone?: string; // Numéro de téléphone (optionnel)
+  hasColdDelivery?: boolean; // Livraison avec du froid (optionnel)
 }
 
 // Temps de livraison fixe pour chaque patient (1 minute)
@@ -31,6 +33,8 @@ export interface CSVPatient {
   adresse: string;
   latitude: string;
   longitude: string;
+  phone?: string; // Numéro de téléphone (optionnel)
+  hasColdDelivery?: string; // "true" ou "false" pour le CSV (optionnel)
 }
 
 // Coordonnées pour La Réunion (centre approximatif)
@@ -52,4 +56,6 @@ export const DEFAULT_PHARMACY: Patient = {
   latitude: -20.9320073477941,
   longitude: 55.64138045246851,
   isPharmacy: true,
+  phone: '', // Numéro de téléphone vide par défaut
+  hasColdDelivery: false, // Pas de livraison avec du froid par défaut
 };

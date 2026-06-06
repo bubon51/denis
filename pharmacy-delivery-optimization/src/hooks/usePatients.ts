@@ -6,12 +6,8 @@ import { exportToCSV, importFromCSV } from '../utils/csv';
 import { geocodeAddress, clearGeocodeCache } from '../utils/geocoding';
 import { calculateRouteDistance, calculateRouteTime, fetchRoutePolyline } from '../utils/distance';
 import {
-  getAllPatients as getAllPatientsFromDB,
   saveAllPatients as saveAllPatientsToDB,
-  getAllDatabasePatients as getAllDatabasePatientsFromDB,
   saveAllDatabasePatients as saveAllDatabasePatientsToDB,
-  addDatabasePatient as addDatabasePatientToDB,
-  updateDatabasePatient as updateDatabasePatientToDB,
   loadInitialData,
   isIndexedDBAvailable,
 } from '../utils/db';

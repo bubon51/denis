@@ -15,12 +15,6 @@ const PATIENTS_STORE = 'patients';
 const DATABASE_PATIENTS_STORE = 'databasePatients';
 const OPTIMIZATION_HISTORY_STORE = 'optimizationHistory';
 
-interface StoredPatient extends Patient {
-  // Ajoutez des métadonnées si nécessaire
-  createdAt?: number;
-  updatedAt?: number;
-}
-
 interface StoredOptimization extends OptimizationResult {
   id: string;
   timestamp: number;

@@ -8,6 +8,8 @@ const patientToCSV = (patient: Patient): CSVPatient => ({
   adresse: patient.adresse,
   latitude: patient.latitude.toString(),
   longitude: patient.longitude.toString(),
+  phone: patient.phone || '',
+  hasColdDelivery: patient.hasColdDelivery?.toString() || '',
 });
 
 // Convertir CSVPatient en Patient (pour l'import)
@@ -19,6 +21,8 @@ const csvToPatient = (csv: CSVPatient, id: string): Patient => ({
   latitude: parseFloat(csv.latitude),
   longitude: parseFloat(csv.longitude),
   isPharmacy: false,
+  phone: csv.phone || undefined,
+  hasColdDelivery: csv.hasColdDelivery?.toLowerCase() === 'true',
 });
 
 // Exporter les patients en CSV

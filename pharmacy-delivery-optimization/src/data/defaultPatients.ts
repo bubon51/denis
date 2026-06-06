@@ -1,6 +1,7 @@
 import { Patient, DEFAULT_PHARMACY } from '../types';
 
 // Données par défaut avec des patients fictifs à La Réunion
+// Inclut les nouveaux champs : phone et hasColdDelivery
 export const defaultPatients: Patient[] = [
   DEFAULT_PHARMACY,
   {
@@ -11,6 +12,8 @@ export const defaultPatients: Patient[] = [
     latitude: -20.8821,
     longitude: 55.4508,
     isPharmacy: false,
+    phone: '06 12 34 56 78',
+    hasColdDelivery: true,
   },
   {
     id: 'patient-2',
@@ -20,6 +23,8 @@ export const defaultPatients: Patient[] = [
     latitude: -21.3408,
     longitude: 55.4769,
     isPharmacy: false,
+    phone: '06 23 45 67 89',
+    hasColdDelivery: false,
   },
   {
     id: 'patient-3',
@@ -29,6 +34,8 @@ export const defaultPatients: Patient[] = [
     latitude: -21.2742,
     longitude: 55.5135,
     isPharmacy: false,
+    phone: '06 34 56 78 90',
+    hasColdDelivery: true,
   },
   {
     id: 'patient-4',
@@ -38,6 +45,8 @@ export const defaultPatients: Patient[] = [
     latitude: -21.0108,
     longitude: 55.2735,
     isPharmacy: false,
+    phone: '06 45 67 89 01',
+    hasColdDelivery: false,
   },
   {
     id: 'patient-5',
@@ -47,6 +56,8 @@ export const defaultPatients: Patient[] = [
     latitude: -20.9581,
     longitude: 55.6558,
     isPharmacy: false,
+    phone: '06 56 78 90 12',
+    hasColdDelivery: true,
   },
   {
     id: 'patient-6',
@@ -56,6 +67,8 @@ export const defaultPatients: Patient[] = [
     latitude: -21.1667,
     longitude: 55.3333,
     isPharmacy: false,
+    phone: '06 67 89 01 23',
+    hasColdDelivery: false,
   },
   {
     id: 'patient-7',
@@ -65,6 +78,8 @@ export const defaultPatients: Patient[] = [
     latitude: -21.0333,
     longitude: 55.7167,
     isPharmacy: false,
+    phone: '06 78 90 12 34',
+    hasColdDelivery: true,
   },
   {
     id: 'patient-8',
@@ -74,6 +89,8 @@ export const defaultPatients: Patient[] = [
     latitude: -21.2833,
     longitude: 55.4167,
     isPharmacy: false,
+    phone: '06 89 01 23 45',
+    hasColdDelivery: false,
   },
   {
     id: 'patient-9',
@@ -83,6 +100,8 @@ export const defaultPatients: Patient[] = [
     latitude: -21.0667,
     longitude: 55.2333,
     isPharmacy: false,
+    phone: '06 90 12 34 56',
+    hasColdDelivery: true,
   },
   {
     id: 'patient-10',
@@ -92,6 +111,8 @@ export const defaultPatients: Patient[] = [
     latitude: -21.2667,
     longitude: 55.3667,
     isPharmacy: false,
+    phone: '06 01 23 45 67',
+    hasColdDelivery: false,
   },
 ];
 

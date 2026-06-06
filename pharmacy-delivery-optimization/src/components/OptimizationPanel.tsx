@@ -1,6 +1,8 @@
 import React from 'react';
 import { Card, Button, Spin, Statistic, Row, Col, Typography, Space, Alert } from 'antd';
 import { OptimizationResult } from '../types';
+import { downloadDeliveryOrder } from '../utils/deliveryOrder';
+import { PrinterOutlined } from '@ant-design/icons';
 
 const { Text } = Typography;
 
@@ -94,22 +96,34 @@ const OptimizationPanel: React.FC<OptimizationPanelProps> = ({
           />
         )}
 
-        <Button
-          type="primary"
-          onClick={onOptimize}
-          loading={isOptimizing}
-          disabled={patientCount <= 1}
-          size="large"
-          block
-        >
-          {isOptimizing ? (
-            <>
-              <Spin size="small" /> Calcul en cours...
-            </>
-          ) : (
-            'Calculer l\'itinéraire optimal'
+        <Space size="middle" style={{ display: 'flex', justifyContent: 'center' }}>
+          <Button
+            type="primary"
+            onClick={onOptimize}
+            loading={isOptimizing}
+            disabled={patientCount <= 1}
+            size="large"
+          >
+            {isOptimizing ? (
+              <>
+                <Spin size="small" /> Calcul en cours...
+              </>
+            ) : (
+              'Calculer l\'itinéraire optimal'
+            )}
+          </Button>
+
+          {result && (
+            <Button
+              type="default"
+              onClick={() => downloadDeliveryOrder(result)}
+              icon={<PrinterOutlined />}
+              size="large"
+            >
+              Imprimer l'ordre
+            </Button>
           )}
-        </Button>
+        </Space>
 
         {patientCount <= 1 && (
           <Text type="secondary" style={{ textAlign: 'center', display: 'block' }}>

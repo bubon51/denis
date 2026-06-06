@@ -42,6 +42,28 @@ const PatientTable: React.FC<PatientTableProps> = ({
       render: (text) => <span style={{ maxWidth: 200, display: 'block' }}>{text}</span>,
     },
     {
+      title: 'Téléphone',
+      key: 'phone',
+      render: (_, record) => (
+        <span>{record.phone || 'N/A'}</span>
+      ),
+    },
+    {
+      title: 'Froid',
+      key: 'hasColdDelivery',
+      render: (_, record) => (
+        <span>
+          {record.hasColdDelivery ? (
+            <Tag color="cyan" icon={<span>❄️</span>}>
+              Oui
+            </Tag>
+          ) : (
+            <Tag color="default">Non</Tag>
+          )}
+        </span>
+      ),
+    },
+    {
       title: 'Coordonnées',
       key: 'coordinates',
       render: (_, record) => (

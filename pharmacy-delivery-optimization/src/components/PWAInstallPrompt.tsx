@@ -50,7 +50,6 @@ const usePWA = () => {
   const [showInstallPrompt, setShowInstallPrompt] = useState(false);
   const [showUpdatePrompt, setShowUpdatePrompt] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<Event | null>(null);
-  const [updateAvailable, setUpdateAvailable] = useState(false);
 
   // Détecter si l'application peut être installée
   useEffect(() => {
@@ -73,7 +72,6 @@ const usePWA = () => {
       const checkForUpdates = () => {
         navigator.serviceWorker.register('/sw.js').then((registration) => {
           registration.onupdatefound = () => {
-            setUpdateAvailable(true);
             setShowUpdatePrompt(true);
           };
         });
