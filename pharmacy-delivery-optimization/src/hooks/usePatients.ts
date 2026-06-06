@@ -8,7 +8,7 @@ import { calculateRouteDistance, calculateRouteTime, fetchRoutePolyline } from '
 
 interface UsePatientsResult {
   patients: Patient[];
-  setPatients: (patients: Patient[]) => void;
+  setPatients: (patients: Patient[] | ((prev: Patient[]) => Patient[])) => void;
   addPatient: (patient: Omit<Patient, 'id' | 'isPharmacy' | 'latitude' | 'longitude'>) => Promise<void>;
   updatePatient: (id: string, updatedPatient: Partial<Patient>) => Promise<void>;
   deletePatient: (id: string) => void;
@@ -90,14 +90,20 @@ export const usePatients = (): UsePatientsResult => {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [routePolyline, setRoutePolyline] = useState<[number, number][] | null>(null);
 
-  // Sauvegarder dans localStorage à chaque changement
+  // Sauvegarder dans localStorage à chaque changement (avec throttling pour éviter les sauvegardes trop fréquentes)
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(patients));
+    const timer = setTimeout(() => {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(patients));
+    }, 300);
+    return () => clearTimeout(timer);
   }, [patients]);
 
   // Sauvegarder la base de données dans localStorage
   useEffect(() => {
-    localStorage.setItem(DATABASE_KEY, JSON.stringify(databasePatients));
+    const timer = setTimeout(() => {
+      localStorage.setItem(DATABASE_KEY, JSON.stringify(databasePatients));
+    }, 300);
+    return () => clearTimeout(timer);
   }, [databasePatients]);
 
   // Filtrer les patients en fonction de la recherche
@@ -127,8 +133,11 @@ export const usePatients = (): UsePatientsResult => {
         isPharmacy: false,
       };
       
-      // Ajouter à la tournée actuelle
-      setPatients(prev => [...prev, newPatient]);
+      // Ajouter à la tournée actuelle et à la base de données dans une seule opération
+      setPatients(prev => {
+        const updatedPatients = [...prev, newPatient];
+        return updatedPatients;
+      });
       
       // Ajouter aussi à la base de données (si le patient n'existe pas déjà)
       setDatabasePatients(prev => {
@@ -148,7 +157,7 @@ export const usePatients = (): UsePatientsResult => {
     } finally {
       setIsGeocoding(false);
     }
-  }, []);
+  }, [setPatients, setDatabasePatients]);
 
   // Mettre à jour un patient avec géocodage automatique si l'adresse change
   const updatePatient = useCallback(async (id: string, updatedData: Partial<Patient>) => {
@@ -165,8 +174,16 @@ export const usePatients = (): UsePatientsResult => {
         finalData = { ...finalData, latitude, longitude };
       }
       
+      const updatedPatient = { ...patient, ...finalData };
+      
+      // Mettre à jour dans la tournée actuelle
       setPatients(prev => 
-        prev.map(p => p.id === id ? { ...p, ...finalData } : p)
+        prev.map(p => p.id === id ? updatedPatient : p)
+      );
+      
+      // Mettre à jour aussi dans la base de données si le patient y est présent
+      setDatabasePatients(prev => 
+        prev.map(p => p.id === id ? updatedPatient : p)
       );
     } catch (error) {
       console.error('Erreur de géocodage:', error);
@@ -174,7 +191,7 @@ export const usePatients = (): UsePatientsResult => {
     } finally {
       setIsGeocoding(false);
     }
-  }, [patients]);
+  }, [patients, setPatients, setDatabasePatients]);
 
   // Supprimer un patient (ne pas supprimer la pharmacie)
   const deletePatient = useCallback((id: string) => {
@@ -187,21 +204,26 @@ export const usePatients = (): UsePatientsResult => {
       return prev.filter(p => p.id !== id);
     });
     
-    // Réinitialiser l'optimisation si on supprime un patient
-    if (optimizationResult) {
-      setOptimizationResult(null);
-      setRoutePolyline(null);
-    }
-  }, [optimizationResult]);
+    // Supprimer aussi de la base de données si présent
+    setDatabasePatients(prev => prev.filter(p => p.id !== id));
+    
+    // Réinitialiser l'optimisation car la liste des patients a changé
+    setOptimizationResult(null);
+    setRoutePolyline(null);
+  }, [setPatients, setDatabasePatients, setOptimizationResult, setRoutePolyline]);
 
   // Optimiser l'itinéraire avec calcul des distances routières
   const optimizeRoute = useCallback(async () => {
     setIsOptimizing(true);
     setRoutePolyline(null);
+    setOptimizationResult(null);
     
     try {
+      // Capturer les patients actuels pour éviter les problèmes de closure
+      const currentPatients = patients;
+      
       // Optimiser l'ordre des patients
-      const result = optimizeRouteFunction(patients);
+      const result = optimizeRouteFunction(currentPatients);
       
       // Extraire les waypoints pour le calcul routier
       const waypoints: [number, number][] = result.route.map(rp => [rp.patient.latitude, rp.patient.longitude]);
@@ -216,7 +238,7 @@ export const usePatients = (): UsePatientsResult => {
       
       // Calculer le temps total : temps de trajet + temps de livraison (1 min par patient)
       // Compter le nombre de patients (exclure la pharmacie du compte de livraison)
-      const patientCount = patients.filter(p => !p.isPharmacy).length;
+      const patientCount = currentPatients.filter(p => !p.isPharmacy).length;
       const deliveryTime = patientCount * DELIVERY_TIME_PER_PATIENT;
       const totalTime = drivingTime + deliveryTime;
       
@@ -228,10 +250,13 @@ export const usePatients = (): UsePatientsResult => {
       });
     } catch (error) {
       console.error('Erreur lors de l\'optimisation:', error);
+      // Réinitialiser en cas d'erreur
+      setOptimizationResult(null);
+      setRoutePolyline(null);
     } finally {
       setIsOptimizing(false);
     }
-  }, [patients]);
+  }, [patients, setOptimizationResult, setRoutePolyline, setIsOptimizing]);
 
   // Exporter en CSV
   const exportPatients = useCallback(() => {
@@ -242,14 +267,15 @@ export const usePatients = (): UsePatientsResult => {
   const importPatients = useCallback((csvContent: string) => {
     try {
       const importedPatients = importFromCSV(csvContent);
-      // Conserver la pharmacie existante si elle existe
-      const existingPharmacy = patients.find(p => p.isPharmacy);
-      
+      // Toujours utiliser la DEFAULT_PHARMACY, pas celle de l'import
       setPatients(() => {
         const newPatients = [...importedPatients];
-        // Ajouter la pharmacie existante si elle n'est pas dans l'import
-        if (existingPharmacy && !importedPatients.some(p => p.isPharmacy)) {
-          newPatients.unshift(existingPharmacy);
+        // Remplacer ou ajouter la pharmacie par défaut
+        const pharmacyIndex = newPatients.findIndex(p => p.isPharmacy);
+        if (pharmacyIndex !== -1) {
+          newPatients[pharmacyIndex] = DEFAULT_PHARMACY;
+        } else {
+          newPatients.unshift(DEFAULT_PHARMACY);
         }
         return newPatients;
       });
@@ -257,7 +283,7 @@ export const usePatients = (): UsePatientsResult => {
       console.error('Erreur lors de l\'import:', error);
       throw error;
     }
-  }, [patients]);
+  }, [setPatients]);
 
   // Réinitialiser aux données par défaut
   const resetToDefault = useCallback(() => {
@@ -266,7 +292,7 @@ export const usePatients = (): UsePatientsResult => {
     setRoutePolyline(null);
     setSearchQuery('');
     clearGeocodeCache();
-  }, []);
+  }, [setPatients, setOptimizationResult, setRoutePolyline, setSearchQuery]);
 
   // Fonction pour récupérer un patient par son nom et prénom
   const getPatientByName = useCallback((nom: string, prenom: string): Patient | undefined => {
@@ -307,7 +333,7 @@ export const usePatients = (): UsePatientsResult => {
     } finally {
       setIsGeocoding(false);
     }
-  }, [databasePatients]);
+  }, [databasePatients, setDatabasePatients, setIsGeocoding]);
 
   // Charger des patients depuis la base de données dans la tournée actuelle
   const loadFromDatabase = useCallback((patientIds: string[]) => {
@@ -318,7 +344,10 @@ export const usePatients = (): UsePatientsResult => {
       const newPatients = [...pharmacy ? [pharmacy] : [], ...selectedPatients];
       return newPatients;
     });
-  }, [databasePatients]);
+    // Réinitialiser l'optimisation car la liste des patients a changé
+    setOptimizationResult(null);
+    setRoutePolyline(null);
+  }, [databasePatients, setPatients, setOptimizationResult, setRoutePolyline]);
 
   // Supprimer tous les patients de la tournée actuelle (sauf la pharmacie)
   const clearCurrentTour = useCallback(() => {
@@ -326,7 +355,7 @@ export const usePatients = (): UsePatientsResult => {
     setOptimizationResult(null);
     setRoutePolyline(null);
     setSearchQuery('');
-  }, []);
+  }, [setPatients, setOptimizationResult, setRoutePolyline, setSearchQuery]);
 
   return {
     patients,
