@@ -8,6 +8,7 @@ import OptimizationPanel from './components/OptimizationPanel';
 import ImportExportButtons from './components/ImportExportButtons';
 import SearchBar from './components/SearchBar';
 import DatabasePanel from './components/DatabasePanel';
+import PWAInstaller from './components/PWAInstallPrompt';
 import { Patient } from './types';
 import { DeleteOutlined, ClusterOutlined } from '@ant-design/icons';
 
@@ -232,6 +233,9 @@ const App: React.FC = () => {
         onClick={handleAddPatient}
         style={{ right: 24, bottom: 24 }}
       />
+      
+      {/* Composant PWA pour l'installation et les mises à jour */}
+      <PWAInstaller />
     </Layout>
   );
 };
