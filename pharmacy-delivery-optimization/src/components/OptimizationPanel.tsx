@@ -56,7 +56,7 @@ const OptimizationPanel: React.FC<OptimizationPanelProps> = ({
           </Col>
         </Row>
 
-        {result && (
+        {result && result.route.length > 1 && (
           <Card size="small" title="Ordre de livraison optimisé">
             <Space direction="vertical" size="small">
               {result.route.map((routePoint, index) => (
@@ -76,9 +76,6 @@ const OptimizationPanel: React.FC<OptimizationPanelProps> = ({
                   </Text>
                   <Text style={{ flex: 1, marginLeft: 8 }}>
                     {routePoint.patient.nom}
-                  </Text>
-                  <Text type="secondary" style={{ fontSize: '12px' }}>
-                    {routePoint.patient.tempsLivraison} min
                   </Text>
                 </div>
               ))}

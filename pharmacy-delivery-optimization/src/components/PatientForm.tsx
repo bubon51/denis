@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, Form, Input, InputNumber, Button, message } from 'antd';
+import { Modal, Form, Input, Button, message, Spin } from 'antd';
 import { Patient } from '../types';
-import { REUNION_BOUNDS } from '../types';
 
 interface PatientFormProps {
   visible: boolean;
   onCancel: () => void;
-  onSubmit: (patient: Omit<Patient, 'id' | 'isPharmacy'>) => void;
+  onSubmit: (patient: Omit<Patient, 'id' | 'isPharmacy' | 'latitude' | 'longitude'>) => Promise<void>;
   initialPatient?: Partial<Patient>;
+  isGeocoding?: boolean;
 }
 
 const PatientForm: React.FC<PatientFormProps> = ({
@@ -15,6 +15,7 @@ const PatientForm: React.FC<PatientFormProps> = ({
   onCancel,
   onSubmit,
   initialPatient,
+  isGeocoding = false,
 }) => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
@@ -30,29 +31,17 @@ const PatientForm: React.FC<PatientFormProps> = ({
   const handleSubmit = async () => {
     try {
       const values = await form.validateFields();
-      
-      // Vérifier que les coordonnées sont dans les limites de La Réunion
-      if (
-        values.latitude < REUNION_BOUNDS[0][0] ||
-        values.latitude > REUNION_BOUNDS[1][0] ||
-        values.longitude < REUNION_BOUNDS[0][1] ||
-        values.longitude > REUNION_BOUNDS[1][1]
-      ) {
-        message.error('Les coordonnées doivent être sur l\'île de La Réunion');
-        return;
-      }
 
       setLoading(true);
-      onSubmit({
+      await onSubmit({
         nom: values.nom,
         adresse: values.adresse,
-        latitude: values.latitude,
-        longitude: values.longitude,
-        tempsLivraison: values.tempsLivraison,
       });
       form.resetFields();
+      message.success(initialPatient ? 'Patient modifié avec succès' : 'Patient ajouté avec succès');
     } catch (error) {
-      console.error('Erreur de validation:', error);
+      console.error('Erreur:', error);
+      message.error(error instanceof Error ? error.message : 'Une erreur est survenue');
     } finally {
       setLoading(false);
     }
@@ -71,13 +60,20 @@ const PatientForm: React.FC<PatientFormProps> = ({
           key="submit"
           type="primary"
           onClick={handleSubmit}
-          loading={loading}
+          loading={loading || isGeocoding}
+          disabled={isGeocoding}
         >
-          {initialPatient ? 'Modifier' : 'Ajouter'}
+          {isGeocoding ? 'Géocodage en cours...' : (initialPatient ? 'Modifier' : 'Ajouter')}
         </Button>,
       ]}
       destroyOnClose
     >
+      {isGeocoding && (
+        <div style={{ textAlign: 'center', marginBottom: 16 }}>
+          <Spin tip="Recherche des coordonnées GPS..." />
+        </div>
+      )}
+      
       <Form
         form={form}
         layout="vertical"
@@ -95,72 +91,11 @@ const PatientForm: React.FC<PatientFormProps> = ({
           name="adresse"
           label="Adresse"
           rules={[{ required: true, message: 'Veuillez entrer une adresse' }]}
+          help="Les coordonnées GPS seront automatiquement déterminées à partir de l'adresse"
         >
           <Input.TextArea
-            placeholder="Adresse complète"
-            rows={2}
-          />
-        </Form.Item>
-
-        <div style={{ display: 'flex', gap: '16px' }}>
-          <Form.Item
-            name="latitude"
-            label="Latitude"
-            rules={[
-              { required: true, message: 'Veuillez entrer une latitude' },
-              {
-                type: 'number',
-                min: REUNION_BOUNDS[0][0],
-                max: REUNION_BOUNDS[1][0],
-                message: `La latitude doit être entre ${REUNION_BOUNDS[0][0]} et ${REUNION_BOUNDS[1][0]}`,
-              },
-            ]}
-            style={{ flex: 1 }}
-          >
-            <InputNumber
-              placeholder="Latitude"
-              precision={6}
-              step={0.0001}
-              style={{ width: '100%' }}
-            />
-          </Form.Item>
-
-          <Form.Item
-            name="longitude"
-            label="Longitude"
-            rules={[
-              { required: true, message: 'Veuillez entrer une longitude' },
-              {
-                type: 'number',
-                min: REUNION_BOUNDS[0][1],
-                max: REUNION_BOUNDS[1][1],
-                message: `La longitude doit être entre ${REUNION_BOUNDS[0][1]} et ${REUNION_BOUNDS[1][1]}`,
-              },
-            ]}
-            style={{ flex: 1 }}
-          >
-            <InputNumber
-              placeholder="Longitude"
-              precision={6}
-              step={0.0001}
-              style={{ width: '100%' }}
-            />
-          </Form.Item>
-        </div>
-
-        <Form.Item
-          name="tempsLivraison"
-          label="Temps de livraison (minutes)"
-          rules={[
-            { required: true, message: 'Veuillez entrer un temps de livraison' },
-            { type: 'number', min: 0, max: 120, message: 'Le temps doit être entre 0 et 120 minutes' },
-          ]}
-        >
-          <InputNumber
-            placeholder="Temps de livraison"
-            min={0}
-            max={120}
-            style={{ width: '100%' }}
+            placeholder="Ex: 133 Avenue du Mahatma Gandhi, 97441 Sainte-Suzanne"
+            rows={3}
           />
         </Form.Item>
       </Form>

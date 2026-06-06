@@ -6,7 +6,6 @@ export interface Patient {
   adresse: string;
   latitude: number;
   longitude: number;
-  tempsLivraison: number; // en minutes
   isPharmacy?: boolean; // Point de départ (pharmacie)
 }
 
@@ -18,7 +17,7 @@ export interface RoutePoint {
 export interface OptimizationResult {
   route: RoutePoint[];
   totalDistance: number; // en km
-  totalTime: number; // en minutes
+  totalTime: number; // en minutes (basé sur la distance et vitesse moyenne)
   optimized: boolean;
 }
 
@@ -27,7 +26,6 @@ export interface CSVPatient {
   adresse: string;
   latitude: string;
   longitude: string;
-  tempsLivraison: string;
 }
 
 // Coordonnées pour La Réunion (centre approximatif)

@@ -3,12 +3,13 @@ import { Patient, OptimizationResult } from '../types';
 import { getDefaultPatients } from '../data/defaultPatients';
 import { optimizeRoute } from '../utils/tsp';
 import { exportToCSV, importFromCSV } from '../utils/csv';
+import { geocodeAddress } from '../utils/geocoding';
 
 interface UsePatientsResult {
   patients: Patient[];
   setPatients: (patients: Patient[]) => void;
-  addPatient: (patient: Omit<Patient, 'id' | 'isPharmacy'>) => void;
-  updatePatient: (id: string, updatedPatient: Partial<Patient>) => void;
+  addPatient: (patient: Omit<Patient, 'id' | 'isPharmacy' | 'latitude' | 'longitude'>) => Promise<void>;
+  updatePatient: (id: string, updatedPatient: Partial<Patient>) => Promise<void>;
   deletePatient: (id: string) => void;
   optimizationResult: OptimizationResult | null;
   isOptimizing: boolean;
@@ -19,6 +20,7 @@ interface UsePatientsResult {
   searchQuery: string;
   setSearchQuery: (query: string) => void;
   filteredPatients: Patient[];
+  isGeocoding: boolean;
 }
 
 export const usePatients = (): UsePatientsResult => {
@@ -27,6 +29,8 @@ export const usePatients = (): UsePatientsResult => {
     const saved = localStorage.getItem('delivery-patients');
     return saved ? JSON.parse(saved) : getDefaultPatients();
   });
+  
+  const [isGeocoding, setIsGeocoding] = useState<boolean>(false);
   
   const [optimizationResult, setOptimizationResult] = useState<OptimizationResult | null>(null);
   const [isOptimizing, setIsOptimizing] = useState<boolean>(false);
@@ -47,22 +51,54 @@ export const usePatients = (): UsePatientsResult => {
     );
   }, [patients, searchQuery])();
 
-  // Ajouter un patient
-  const addPatient = useCallback((patientData: Omit<Patient, 'id' | 'isPharmacy'>) => {
-    const newPatient: Patient = {
-      ...patientData,
-      id: `patient-${Date.now()}`,
-      isPharmacy: false,
-    };
-    setPatients(prev => [...prev, newPatient]);
+  // Ajouter un patient avec géocodage automatique
+  const addPatient = useCallback(async (patientData: Omit<Patient, 'id' | 'isPharmacy' | 'latitude' | 'longitude'>) => {
+    setIsGeocoding(true);
+    try {
+      // Géocoder l'adresse pour obtenir les coordonnées
+      const { latitude, longitude } = await geocodeAddress(patientData.adresse);
+      
+      const newPatient: Patient = {
+        ...patientData,
+        id: `patient-${Date.now()}`,
+        latitude,
+        longitude,
+        isPharmacy: false,
+      };
+      setPatients(prev => [...prev, newPatient]);
+    } catch (error) {
+      console.error('Erreur de géocodage:', error);
+      throw error;
+    } finally {
+      setIsGeocoding(false);
+    }
   }, []);
 
-  // Mettre à jour un patient
-  const updatePatient = useCallback((id: string, updatedData: Partial<Patient>) => {
-    setPatients(prev => 
-      prev.map(p => p.id === id ? { ...p, ...updatedData } : p)
-    );
-  }, []);
+  // Mettre à jour un patient avec géocodage automatique si l'adresse change
+  const updatePatient = useCallback(async (id: string, updatedData: Partial<Patient>) => {
+    const patient = patients.find(p => p.id === id);
+    if (!patient) return;
+
+    setIsGeocoding(true);
+    try {
+      let finalData = { ...updatedData };
+      
+      // Si l'adresse a changé, recalculer les coordonnées
+      if (updatedData.adresse && updatedData.adresse !== patient.adresse) {
+        const { latitude, longitude } = await geocodeAddress(updatedData.adresse);
+        finalData = { ...finalData, latitude, longitude };
+      }
+      
+      setPatients(prev => 
+        prev.map(p => p.id === id ? { ...p, ...finalData } : p)
+      );
+    } catch (error) {
+      console.error('Erreur de géocodage:', error);
+      throw error;
+    } finally {
+      setIsGeocoding(false);
+    }
+  }, [patients]);
 
   // Supprimer un patient (ne pas supprimer la pharmacie)
   const deletePatient = useCallback((id: string) => {
@@ -141,5 +177,6 @@ export const usePatients = (): UsePatientsResult => {
     searchQuery,
     setSearchQuery,
     filteredPatients,
+    isGeocoding,
   };
 };

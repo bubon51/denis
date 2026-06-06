@@ -7,7 +7,6 @@ const patientToCSV = (patient: Patient): CSVPatient => ({
   adresse: patient.adresse,
   latitude: patient.latitude.toString(),
   longitude: patient.longitude.toString(),
-  tempsLivraison: patient.tempsLivraison.toString(),
 });
 
 // Convertir CSVPatient en Patient (pour l'import)
@@ -17,7 +16,6 @@ const csvToPatient = (csv: CSVPatient, id: string): Patient => ({
   adresse: csv.adresse,
   latitude: parseFloat(csv.latitude),
   longitude: parseFloat(csv.longitude),
-  tempsLivraison: parseInt(csv.tempsLivraison, 10),
   isPharmacy: false,
 });
 
@@ -49,7 +47,7 @@ export const importFromCSV = (csvContent: string): Patient[] => {
   const patients: Patient[] = [];
   results.data.forEach((row, index) => {
     try {
-      if (row.nom && row.adresse && row.latitude && row.longitude && row.tempsLivraison) {
+      if (row.nom && row.adresse && row.latitude && row.longitude) {
         const patient = csvToPatient(row, `imported-${index}`);
         patients.push(patient);
       }
@@ -71,7 +69,7 @@ export const validateCSV = (csvContent: string): boolean => {
     });
 
     // Vérifier que les colonnes requises sont présentes
-    const requiredColumns = ['nom', 'adresse', 'latitude', 'longitude', 'tempsLivraison'];
+    const requiredColumns = ['nom', 'adresse', 'latitude', 'longitude'];
     const hasAllColumns = requiredColumns.every(col => 
       results.meta.fields?.includes(col)
     );

@@ -37,30 +37,11 @@ export const calculateTotalDistance = (
   return total;
 };
 
-// Calcul du temps total (somme des temps de livraison + temps de trajet estimé)
-// Temps de trajet estimé : distance / vitesse moyenne (40 km/h en ville)
+// Calcul du temps total basé uniquement sur la distance (vitesse moyenne : 40 km/h)
 export const calculateTotalTime = (
-  points: { latitude: number; longitude: number; tempsLivraison: number }[],
+  totalDistance: number,
   speedKmh: number = 40
 ): number => {
-  if (points.length === 0) return 0;
-  
-  let totalTime = points.reduce((sum, point) => sum + point.tempsLivraison, 0);
-  
-  // Ajouter le temps de trajet
-  if (points.length > 1) {
-    let totalDistance = 0;
-    for (let i = 0; i < points.length - 1; i++) {
-      totalDistance += haversineDistance(
-        points[i].latitude,
-        points[i].longitude,
-        points[i + 1].latitude,
-        points[i + 1].longitude
-      );
-    }
-    // Convertir distance en temps (heures) puis en minutes
-    totalTime += (totalDistance / speedKmh) * 60;
-  }
-  
-  return Math.round(totalTime);
+  // Convertir distance en temps (heures) puis en minutes
+  return Math.round((totalDistance / speedKmh) * 60);
 };

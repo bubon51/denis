@@ -52,13 +52,6 @@ const PatientTable: React.FC<PatientTableProps> = ({
       ),
     },
     {
-      title: 'Temps livraison',
-      dataIndex: 'tempsLivraison',
-      key: 'tempsLivraison',
-      sorter: (a, b) => a.tempsLivraison - b.tempsLivraison,
-      render: (text) => <span>{text} min</span>,
-    },
-    {
       title: 'Actions',
       key: 'actions',
       render: (_, record) => (

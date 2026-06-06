@@ -22,7 +22,7 @@ export const greedyTSP = (patients: Patient[]): OptimizationResult => {
     return {
       route: [{ patient: pharmacy, order: 0 }],
       totalDistance: 0,
-      totalTime: pharmacy.tempsLivraison,
+      totalTime: 0,
       optimized: true,
     };
   }
@@ -61,13 +61,10 @@ export const greedyTSP = (patients: Patient[]): OptimizationResult => {
     current = nextPatient;
   }
 
-  // Retour à la pharmacie (optionnel pour une tournée fermée)
-  // route.push({ patient: pharmacy, order: route.length });
-
-  // Calculer la distance et le temps total
+  // Calculer la distance totale
   const routePatients = route.map(rp => rp.patient);
   const totalDistance = calculateTotalDistance(routePatients);
-  const totalTime = calculateTotalTime(routePatients);
+  const totalTime = calculateTotalTime(totalDistance);
 
   return {
     route,
@@ -110,7 +107,7 @@ export const twoOptOptimization = (
           result = {
             route: newRoute,
             totalDistance: newDistance,
-            totalTime: calculateTotalTime(newRoutePatients),
+            totalTime: calculateTotalTime(newDistance),
             optimized: true,
           };
           improved = true;

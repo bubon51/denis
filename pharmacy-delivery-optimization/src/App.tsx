@@ -29,6 +29,7 @@ const App: React.FC = () => {
     searchQuery,
     setSearchQuery,
     resetToDefault,
+    isGeocoding,
   } = usePatients();
 
   const [isFormVisible, setIsFormVisible] = useState(false);
@@ -44,14 +45,18 @@ const App: React.FC = () => {
     setIsFormVisible(true);
   };
 
-  const handleFormSubmit = (patientData: Omit<Patient, 'id' | 'isPharmacy'>) => {
-    if (editingPatient) {
-      updatePatient(editingPatient.id, patientData);
-    } else {
-      addPatient(patientData);
+  const handleFormSubmit = async (patientData: Omit<Patient, 'id' | 'isPharmacy' | 'latitude' | 'longitude'>) => {
+    try {
+      if (editingPatient) {
+        await updatePatient(editingPatient.id, patientData);
+      } else {
+        await addPatient(patientData);
+      }
+      setIsFormVisible(false);
+      setEditingPatient(null);
+    } catch (error) {
+      // L'erreur est déjà gérée dans le hook
     }
-    setIsFormVisible(false);
-    setEditingPatient(null);
   };
 
   const handleReset = () => {
@@ -153,6 +158,7 @@ const App: React.FC = () => {
         }}
         onSubmit={handleFormSubmit}
         initialPatient={editingPatient || undefined}
+        isGeocoding={isGeocoding}
       />
 
       {/* Bouton flottant pour ajouter un patient */}
