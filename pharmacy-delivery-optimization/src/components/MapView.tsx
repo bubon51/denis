@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
+import React, { useEffect, useState, useMemo } from 'react';
+import { MapContainer, TileLayer, Popup, Polyline, useMap } from 'react-leaflet';
+import MarkerClusterGroup from 'react-leaflet-markercluster';
 import L from 'leaflet';
 import { Patient, OptimizationResult } from '../types';
 import { REUNION_CENTER, REUNION_ZOOM, REUNION_BOUNDS } from '../types';
@@ -22,6 +23,26 @@ const pharmacyIcon = L.icon({
   popupAnchor: [1, -34],
   shadowSize: [41, 41],
 });
+
+// Personnalisation des icônes de cluster
+const createClusterIcon = (cluster: L.MarkerCluster) => {
+  const count = cluster.getChildCount();
+  const size = count < 10 ? 'small' : count < 100 ? 'medium' : 'large';
+  
+  // Couleurs basées sur la taille du cluster
+  const bgColor = count < 10 ? '#1890ff' : count < 50 ? '#faad14' : '#f5222d';
+  
+  return L.divIcon({
+    html: `<div style="background-color: ${bgColor}; border-radius: 50%; width: ${size === 'small' ? '30' : size === 'medium' ? '40' : '50'}px; height: ${size === 'small' ? '30' : size === 'medium' ? '40' : '50'}px; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: ${size === 'small' ? '12' : size === 'medium' ? '14' : '16'}px;">
+      ${count}
+    </div>`,
+    className: 'marker-cluster-custom',
+    iconSize: L.point(
+      size === 'small' ? 30 : size === 'medium' ? 40 : 50,
+      size === 'small' ? 30 : size === 'medium' ? 40 : 50
+    ),
+  });
+};
 
 // Composant pour ajuster les limites de la carte
 const MapBoundsUpdater: React.FC<{ bounds: L.LatLngBoundsExpression }> = ({ bounds }) => {
@@ -57,11 +78,52 @@ const RouteLayer: React.FC<{
   );
 };
 
+// Composant pour un marqueur individuel avec popup
+const PatientMarker: React.FC<{
+  patient: Patient;
+  optimizationResult: OptimizationResult | null;
+}> = ({ patient, optimizationResult }) => {
+  const order = optimizationResult 
+    ? optimizationResult.route.find((rp) => rp.patient.id === patient.id)?.order! + 1 
+    : null;
+
+  return (
+    <L.Marker
+      position={[patient.latitude, patient.longitude] as L.LatLngExpression}
+      icon={patient.isPharmacy ? pharmacyIcon : defaultIcon}
+    >
+      <Popup>
+        <div style={{ minWidth: 200 }}>
+          <h4 style={{ margin: '0 0 8px 0', color: '#1890ff' }}>
+            {patient.isPharmacy ? '🏥 Pharmacie' : '👤 Patient'}
+          </h4>
+          <p style={{ margin: '4px 0', fontWeight: 'bold' }}>
+            {patient.prenom && `${patient.prenom} `}{patient.nom}
+          </p>
+          <p style={{ margin: '4px 0', fontSize: '12px', color: '#666' }}>
+            {patient.adresse}
+          </p>
+          <p style={{ margin: '4px 0', fontSize: '12px' }}>
+            Coordonnées: {patient.latitude.toFixed(4)}, {patient.longitude.toFixed(4)}
+          </p>
+          {order !== null && (
+            <p style={{ margin: '4px 0', fontSize: '12px', color: '#52c41a' }}>
+              Ordre: {order}
+            </p>
+          )}
+        </div>
+      </Popup>
+    </L.Marker>
+  );
+};
+
 interface MapViewProps {
   patients: Patient[];
   optimizationResult: OptimizationResult | null;
   routePolyline: [number, number][] | null;
   height?: string;
+  // Option pour activer/désactiver le clustering
+  enableClustering?: boolean;
 }
 
 const MapView: React.FC<MapViewProps> = ({
@@ -69,6 +131,7 @@ const MapView: React.FC<MapViewProps> = ({
   optimizationResult,
   routePolyline,
   height = '500px',
+  enableClustering = true,
 }) => {
   const [mapKey, setMapKey] = useState(0);
 
@@ -99,6 +162,17 @@ const MapView: React.FC<MapViewProps> = ({
     ] as L.LatLngBoundsExpression;
   };
 
+  // Créer les marqueurs pour le clustering
+  const markers = useMemo(() => {
+    return patients.map((patient) => (
+      <PatientMarker 
+        key={patient.id} 
+        patient={patient} 
+        optimizationResult={optimizationResult}
+      />
+    ));
+  }, [patients, optimizationResult]);
+
   return (
     <div style={{ height, width: '100%', borderRadius: '8px', overflow: 'hidden', position: 'relative' }}>
       <MapContainer
@@ -120,44 +194,28 @@ const MapView: React.FC<MapViewProps> = ({
         {/* Itinéraire routier (en dessous des marqueurs) */}
         <RouteLayer routePolyline={routePolyline} color="#f5222d" />
 
-        {/* Marqueurs des patients */}
-        {patients.map((patient) => (
-          <Marker
-            key={patient.id}
-            position={[patient.latitude, patient.longitude] as L.LatLngExpression}
-            icon={patient.isPharmacy ? pharmacyIcon : defaultIcon}
+        {/* Marqueurs des patients avec clustering */}
+        {enableClustering ? (
+          <MarkerClusterGroup
+            // Personnalisation de l'icône de cluster
+            iconCreateFunction={createClusterIcon}
+            // Options de clustering
+            spiderfyOnMaxZoom={true}
+            showCoverageOnHover={true}
+            zoomToBoundsOnClick={true}
+            maxClusterRadius={50}
+            disableClusteringAtZoom={15}
           >
-            <Popup>
-              <div style={{ minWidth: 200 }}>
-                <h4 style={{ margin: '0 0 8px 0', color: '#1890ff' }}>
-                  {patient.isPharmacy ? '🏥 Pharmacie' : '👤 Patient'}
-                </h4>
-                <p style={{ margin: '4px 0', fontWeight: 'bold' }}>
-                  {patient.prenom && `${patient.prenom} `}{patient.nom}
-                </p>
-                <p style={{ margin: '4px 0', fontSize: '12px', color: '#666' }}>
-                  {patient.adresse}
-                </p>
-                <p style={{ margin: '4px 0', fontSize: '12px' }}>
-                  Coordonnées: {patient.latitude.toFixed(4)}, {patient.longitude.toFixed(4)}
-                </p>
-                {optimizationResult && (
-                  <p style={{ margin: '4px 0', fontSize: '12px', color: '#52c41a' }}>
-                    Ordre: {optimizationResult.route.find((rp) => rp.patient.id === patient.id)?.order! + 1 || 'Non inclus'}
-                  </p>
-                )}
-              </div>
-            </Popup>
-          </Marker>
-        ))}
+            {markers}
+          </MarkerClusterGroup>
+        ) : (
+          // Affichage sans clustering (ancien comportement)
+          <>{markers}</>
+        )}
       </MapContainer>
     </div>
   );
 };
 
 // Composant wrapper pour utiliser useMap
-const MapViewWrapper: React.FC<MapViewProps> = (props) => {
-  return <MapView {...props} />;
-};
-
-export default MapViewWrapper;
+export default MapView;

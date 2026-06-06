@@ -28,6 +28,7 @@ Une application web complète en **React + TypeScript** pour optimiser les tourn
 - **Leaflet + OpenStreetMap** centrée sur La Réunion
 - **Itinéraire routier** : Ligne rouge suivant les **vraies routes** (pas des lignes droites)
 - Marqueurs cliquables avec popups (nom, prénom, adresse, temps, ordre)
+- **Clustering automatique** : Regroupement des patients proches avec affichage du nombre (activable/désactivable)
 - Zoom/Dézoom libre
 - Limites géographiques pour La Réunion
 
@@ -112,7 +113,8 @@ pharmacy-delivery-optimization/
 │   │   ├── distance.ts (calcul distances routières)
 │   │   ├── tsp.ts (algorithmes TSP)
 │   │   ├── csv.ts (import/export)
-│   │   └── geocoding.ts (géocodage automatique)
+│   │   ├── geocoding.ts (géocodage automatique)
+│   │   └── db.ts (IndexedDB - persistance des données)
 │   ├── types/
 │   │   └── index.ts
 │   ├── data/
@@ -181,9 +183,10 @@ pharmacy-delivery-optimization/
 
 - **Frontend**: React 18 + TypeScript
 - **UI**: Ant Design (antd) 5.x
-- **Cartographie**: Leaflet + React-Leaflet + OpenStreetMap
+- **Cartographie**: Leaflet + React-Leaflet + OpenStreetMap + **MarkerCluster**
 - **Géocodage**: Nominatim (OpenStreetMap)
 - **Routage**: OSRM (Open Source Routing Machine)
+- **Stockage**: IndexedDB (avec fallback localStorage)
 - **Build**: Vite 5.x
 - **Déploiement**: GitHub Pages
 
@@ -213,8 +216,65 @@ pharmacy-delivery-optimization/
 ✅ **Distances routières** : Calcul basé sur les vraies routes (pas à vol d'oiseau)
 ✅ **Itinéraire sur carte** : Affichage des trajets réels avec Leaflet
 ✅ **Autocomplétion** : Tapez nom + prénom pour retrouver l'adresse
-✅ **Persistance** : Les données sont sauvegardées dans le localStorage
+✅ **Persistance** : Les données sont sauvegardées dans **IndexedDB** (avec migration automatique depuis localStorage)
 ✅ **Responsive** : Adapté aux mobiles et tablettes
+
+## 💾 Stockage des données
+
+### IndexedDB
+L'application utilise **IndexedDB** pour une persistance avancée des données :
+
+- **Capacité** : Plusieurs Mo/Go selon le navigateur (contre ~5 Mo pour localStorage)
+- **Stores** :
+  - `patients` : Patients de la tournée en cours
+  - `databasePatients` : Base de données locale des patients réutilisables
+  - `optimizationHistory` : Historique des tournées optimisées (optionnel)
+- **Migration automatique** : Si des données existent dans localStorage, elles sont automatiquement migrées vers IndexedDB au premier chargement
+- **Fallback** : Si IndexedDB n'est pas disponible, l'application utilise localStorage
+
+### Structure de la base de données
+```
+PharmacyDeliveryDB (version 1)
+├── patients (clé: id)
+│   ├── id, nom, prenom, adresse, latitude, longitude, isPharmacy
+│   └── index: nom, isPharmacy
+├── databasePatients (clé: id)
+│   ├── id, nom, prenom, adresse, latitude, longitude
+│   └── index: nom, adresse
+└── optimizationHistory (clé: id)
+    ├── id, route, totalDistance, totalTime, optimized, timestamp
+    └── index: timestamp
+```
+
+## 🗺️ Clustering des marqueurs
+
+### Fonctionnalité
+L'application utilise **Leaflet.markercluster** pour regrouper les patients proches géographiquement sur la carte :
+
+- **Regroupement automatique** : Les marqueurs proches sont fusionnés en un seul cluster.
+- **Affichage du nombre** : Chaque cluster affiche le nombre de patients qu'il contient.
+- **Personnalisation** : Les clusters changent de couleur et de taille en fonction du nombre de patients :
+  - **Bleu** (#1890ff) : Moins de 10 patients
+  - **Orange** (#faad14) : Entre 10 et 50 patients
+  - **Rouge** (#f5222d) : Plus de 50 patients
+- **Interactif** :
+  - Cliquer sur un cluster pour zoomer dessus.
+  - Au zoom maximal, les marqueurs se séparent (spiderfy).
+  - Survoler un cluster pour voir sa zone de couverture.
+
+### Activation/Désactivation
+Un interrupteur (**Switch**) est disponible en haut à droite de la carte pour :
+- **Activer le clustering** : Regrouper les patients proches.
+- **Désactiver le clustering** : Afficher tous les marqueurs individuellement.
+
+### Options de clustering
+| Option | Valeur | Description |
+|--------|--------|-------------|
+| `maxClusterRadius` | 50 | Rayon maximal (en pixels) pour regrouper les marqueurs. |
+| `disableClusteringAtZoom` | 15 | Niveau de zoom à partir duquel le clustering est désactivé. |
+| `spiderfyOnMaxZoom` | true | Active la séparation des marqueurs au zoom maximal. |
+| `showCoverageOnHover` | true | Affiche la zone couverte par le cluster au survol. |
+| `zoomToBoundsOnClick` | true | Zoom sur les limites du cluster au clic. |
 
 ## 📄 Licence
 
