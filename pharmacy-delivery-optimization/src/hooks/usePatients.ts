@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
-import { Patient, DatabasePatient, OptimizationResult, DEFAULT_PHARMACY, DELIVERY_TIME_PER_PATIENT } from '../types';
+import { Patient, DatabasePatient, OptimizationResult, DEFAULT_PHARMACY } from '../types';
+import { DELIVERY_TIME_PER_PATIENT, SAVE_DEBOUNCE_MS } from '../constants';
 import { getDefaultPatients } from '../data/defaultPatients';
 import { optimizeRoute as optimizeRouteFunction } from '../utils/tsp';
 import { exportToCSV, importFromCSV } from '../utils/csv';
@@ -123,45 +124,31 @@ export const usePatients = (): UsePatientsResult => {
     loadData();
   }, []);
 
-  // Sauvegarder les patients de la tournée dans IndexedDB (avec throttling)
+  // Sauvegarder les patients (tournée et base de données) dans IndexedDB (avec throttling)
+  // Utiliser un seul useEffect pour éviter les sauvegardes redondantes
   useEffect(() => {
     if (isLoading) return; // Ne pas sauvegarder pendant le chargement initial
     
     const timer = setTimeout(async () => {
       try {
         if (isIndexedDBAvailable()) {
-          await saveAllPatientsToDB(patients);
+          // Sauvegarder les deux en parallèle
+          await Promise.all([
+            saveAllPatientsToDB(patients),
+            saveAllDatabasePatientsToDB(databasePatients),
+          ]);
         } else {
           // Fallback vers localStorage
           localStorage.setItem('pharmacy-delivery-patients', JSON.stringify(patients));
-        }
-      } catch (error) {
-        console.error('Erreur lors de la sauvegarde des patients:', error);
-      }
-    }, 300);
-    
-    return () => clearTimeout(timer);
-  }, [patients, isLoading]);
-
-  // Sauvegarder les patients de la base de données dans IndexedDB (avec throttling)
-  useEffect(() => {
-    if (isLoading) return; // Ne pas sauvegarder pendant le chargement initial
-    
-    const timer = setTimeout(async () => {
-      try {
-        if (isIndexedDBAvailable()) {
-          await saveAllDatabasePatientsToDB(databasePatients);
-        } else {
-          // Fallback vers localStorage
           localStorage.setItem('pharmacy-delivery-database', JSON.stringify(databasePatients));
         }
       } catch (error) {
-        console.error('Erreur lors de la sauvegarde de la base de données:', error);
+        console.error('Erreur lors de la sauvegarde des données:', error);
       }
-    }, 300);
+    }, SAVE_DEBOUNCE_MS);
     
     return () => clearTimeout(timer);
-  }, [databasePatients, isLoading]);
+  }, [patients, databasePatients, isLoading]);
 
   // Filtrer les patients en fonction de la recherche (avec useMemo pour optimiser)
   const filteredPatients = useMemo(() => {

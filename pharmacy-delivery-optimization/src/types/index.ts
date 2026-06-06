@@ -1,4 +1,8 @@
 // Types pour l'application d'optimisation des tournées de livraison
+import { REUNION_CENTER, REUNION_ZOOM, REUNION_BOUNDS, DELIVERY_TIME_PER_PATIENT } from '../constants';
+
+// Exporter les constantes pour la compatibilité ascendante
+export { REUNION_CENTER, REUNION_ZOOM, REUNION_BOUNDS, DELIVERY_TIME_PER_PATIENT };
 
 // Type pour les patients stockés dans la base de données (sans hasColdDelivery)
 export interface DatabasePatient {
@@ -16,9 +20,6 @@ export interface DatabasePatient {
 export interface Patient extends DatabasePatient {
   hasColdDelivery?: boolean; // Livraison avec du froid (optionnel, uniquement pour la livraison en cours)
 }
-
-// Temps de livraison fixe pour chaque patient (1 minute)
-export const DELIVERY_TIME_PER_PATIENT = 1; // en minutes
 
 export interface RoutePoint {
   patient: Patient;
@@ -41,15 +42,7 @@ export interface CSVPatient {
   phone?: string; // Numéro de téléphone (optionnel)
 }
 
-// Coordonnées pour La Réunion (centre approximatif)
-export const REUNION_CENTER: [number, number] = [-21.1151, 55.5364];
-export const REUNION_ZOOM = 10;
 
-// Limites pour La Réunion (pour validation)
-export const REUNION_BOUNDS: [[number, number], [number, number]] = [
-  [-21.4, 55.2], // Sud-Ouest
-  [-20.8, 55.8]  // Nord-Est
-];
 
 // Pharmacie par défaut (point de départ)
 export const DEFAULT_PHARMACY: Patient = {

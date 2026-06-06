@@ -4,16 +4,8 @@
  */
 
 // Types pour les données stockées
-import { Patient, OptimizationResult } from '../types';
-
-// Nom de la base de données et version
-const DB_NAME = 'PharmacyDeliveryDB';
-const DB_VERSION = 1;
-
-// Noms des stores
-const PATIENTS_STORE = 'patients';
-const DATABASE_PATIENTS_STORE = 'databasePatients';
-const OPTIMIZATION_HISTORY_STORE = 'optimizationHistory';
+import { Patient, OptimizationResult, DatabasePatient } from '../types';
+import { DB_NAME, DB_VERSION, PATIENTS_STORE, DATABASE_PATIENTS_STORE, OPTIMIZATION_HISTORY_STORE } from '../constants';
 
 interface StoredOptimization extends OptimizationResult {
   id: string;
@@ -241,7 +233,7 @@ export const deletePatient = async (id: string): Promise<void> => {
 /**
  * Récupère tous les patients de la base de données locale.
  */
-export const getAllDatabasePatients = async (): Promise<Patient[]> => {
+export const getAllDatabasePatients = async (): Promise<DatabasePatient[]> => {
   const database = await initDB();
   return new Promise((resolve, reject) => {
     const transaction = database.transaction(DATABASE_PATIENTS_STORE, 'readonly');
@@ -249,7 +241,7 @@ export const getAllDatabasePatients = async (): Promise<Patient[]> => {
     const request = store.getAll();
 
     request.onsuccess = () => {
-      resolve(request.result as Patient[]);
+      resolve(request.result as DatabasePatient[]);
     };
     request.onerror = (event) => {
       console.error('Erreur lors de la récupération des patients de la base de données:', event);
@@ -261,7 +253,7 @@ export const getAllDatabasePatients = async (): Promise<Patient[]> => {
 /**
  * Ajoute un patient à la base de données locale.
  */
-export const addDatabasePatient = async (patient: Patient): Promise<void> => {
+export const addDatabasePatient = async (patient: DatabasePatient): Promise<void> => {
   const database = await initDB();
   return new Promise((resolve, reject) => {
     const transaction = database.transaction(DATABASE_PATIENTS_STORE, 'readwrite');
@@ -284,7 +276,7 @@ export const addDatabasePatient = async (patient: Patient): Promise<void> => {
 /**
  * Met à jour un patient dans la base de données locale.
  */
-export const updateDatabasePatient = async (patient: Patient): Promise<void> => {
+export const updateDatabasePatient = async (patient: DatabasePatient): Promise<void> => {
   const database = await initDB();
   return new Promise((resolve, reject) => {
     const transaction = database.transaction(DATABASE_PATIENTS_STORE, 'readwrite');
@@ -320,7 +312,7 @@ export const deleteDatabasePatient = async (id: string): Promise<void> => {
 /**
  * Sauvegarde tous les patients de la base de données locale.
  */
-export const saveAllDatabasePatients = async (patients: Patient[]): Promise<void> => {
+export const saveAllDatabasePatients = async (patients: DatabasePatient[]): Promise<void> => {
   const database = await initDB();
   return new Promise((resolve, reject) => {
     const transaction = database.transaction(DATABASE_PATIENTS_STORE, 'readwrite');
