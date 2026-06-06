@@ -49,7 +49,7 @@ export const DEFAULT_PHARMACY: Patient = {
   nom: 'Pharmacie Centrale',
   prenom: '',
   adresse: '133 Avenue du Mahatma Gandhi, 97441 Sainte-Suzanne',
-  latitude: -20.93206752085709,
-  longitude: 55.64129506756579,
+  latitude: -20.9320073477941,
+  longitude: 55.64138045246851,
   isPharmacy: true,
 };
