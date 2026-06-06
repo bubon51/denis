@@ -35,24 +35,41 @@ interface UsePatientsResult {
 const STORAGE_KEY = 'pharmacy-delivery-patients';
 const DATABASE_KEY = 'pharmacy-delivery-database';
 
+// Fonction pour normaliser les patients et s'assurer que la pharmacie a les bonnes coordonnées
+const normalizePatients = (patients: Patient[]): Patient[] => {
+  const pharmacyIndex = patients.findIndex(p => p.isPharmacy);
+  if (pharmacyIndex !== -1) {
+    // Remplacer la pharmacie par la DEFAULT_PHARMACY
+    const normalized = [...patients];
+    normalized[pharmacyIndex] = DEFAULT_PHARMACY;
+    return normalized;
+  }
+  // Si pas de pharmacie, en ajouter une
+  return [DEFAULT_PHARMACY, ...patients];
+};
+
 export const usePatients = (): UsePatientsResult => {
-  const [patients, setPatients] = useState<Patient[]>(() => {
+  const [patients, _setPatients] = useState<Patient[]>(() => {
     // Charger depuis localStorage si disponible
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        // Vérifier que la pharmacie est présente
-        if (!parsed.some((p: Patient) => p.isPharmacy)) {
-          parsed.unshift(DEFAULT_PHARMACY);
-        }
-        return parsed;
+        return normalizePatients(parsed);
       } catch {
         return getDefaultPatients();
       }
     }
     return getDefaultPatients();
   });
+
+  // Wrapper pour setPatients qui normalise toujours les données
+  const setPatients = useCallback((patients: Patient[] | ((prev: Patient[]) => Patient[])) => {
+    _setPatients(prev => {
+      const newPatients = typeof patients === 'function' ? patients(prev) : patients;
+      return normalizePatients(newPatients);
+    });
+  }, []);
   
   // Base de données de patients (sans la pharmacie)
   const [databasePatients, setDatabasePatients] = useState<Patient[]>(() => {
