@@ -1,0 +1,180 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  height: 100%;
+}
+
+/* Style pour la carte Leaflet */
+.leaflet-container {
+  background-color: #f0f0f0;
+}
+
+.leaflet-popup-content-wrapper {
+  border-radius: 8px;
+  padding: 0;
+}
+
+.leaflet-popup-content {
+  margin: 16px;
+}
+
+.leaflet-popup-tip {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Style pour les boutons flottants */
+.ant-float-btn {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.ant-float-btn:hover {
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+}
+
+/* Style pour les cartes */
+.ant-card {
+  border-radius: 8px;
+  box-shadow: 0 1px 2px -2px rgba(0, 0, 0, 0.08),
+              0 3px 6px 0 rgba(0, 0, 0, 0.06),
+              0 5px 12px 4px rgba(0, 0, 0, 0.04);
+}
+
+.ant-card-head {
+  border-radius: 8px 8px 0 0 !important;
+}
+
+/* Style pour les tableaux */
+.ant-table {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.ant-table-thead > tr > th {
+  background-color: #fafafa;
+  font-weight: 600;
+}
+
+.ant-table-tbody > tr:hover > td {
+  background-color: #fafafa;
+}
+
+/* Style pour les formulaires */
+.ant-form-item-label > label {
+  font-weight: 500;
+}
+
+.ant-input, .ant-input-number {
+  border-radius: 6px;
+}
+
+.ant-input:focus, .ant-input-number:focus {
+  border-color: #1890ff;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+}
+
+/* Style pour les messages */
+.ant-message {
+  border-radius: 8px;
+}
+
+/* Style pour les boutons */
+.ant-btn {
+  border-radius: 6px;
+}
+
+.ant-btn-primary {
+  background-color: #1890ff;
+  border-color: #1890ff;
+}
+
+.ant-btn-primary:hover {
+  background-color: #40a9ff;
+  border-color: #40a9ff;
+}
+
+/* Style pour les tags */
+.ant-tag {
+  border-radius: 12px;
+  font-size: 12px;
+  padding: 2px 8px;
+}
+
+/* Style pour les statistiques */
+.ant-statistic-content {
+  font-size: 24px;
+  line-height: 1.2;
+}
+
+/* Style pour les alertes */
+.ant-alert {
+  border-radius: 8px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .ant-table {
+    display: block;
+    overflow-x: auto;
+  }
+  
+  .ant-card {
+    margin-bottom: 16px;
+  }
+  
+  .ant-btn {
+    padding: 4px 12px;
+    font-size: 14px;
+  }
+}
+
+/* Animation pour le chargement */
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.ant-spin-dot {
+  animation: spin 1s linear infinite;
+}
+
+/* Style pour les popups de la carte */
+.leaflet-popup-content h4 {
+  margin: 0 0 8px 0;
+  color: #1890ff;
+}
+
+.leaflet-popup-content p {
+  margin: 4px 0;
+}
+
+/* Style pour les diviseurs */
+.ant-divider {
+  margin: 24px 0;
+}
+
+.ant-divider-horizontal {
+  display: none;
+}
+
+@media (min-width: 769px) {
+  .ant-divider-horizontal {
+    display: block;
+  }
+}

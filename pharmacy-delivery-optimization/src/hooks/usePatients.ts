@@ -1,0 +1,145 @@
+import { useState, useCallback, useEffect } from 'react';
+import { Patient, OptimizationResult } from '../types';
+import { getDefaultPatients } from '../data/defaultPatients';
+import { optimizeRoute } from '../utils/tsp';
+import { exportToCSV, importFromCSV } from '../utils/csv';
+
+interface UsePatientsResult {
+  patients: Patient[];
+  setPatients: (patients: Patient[]) => void;
+  addPatient: (patient: Omit<Patient, 'id' | 'isPharmacy'>) => void;
+  updatePatient: (id: string, updatedPatient: Partial<Patient>) => void;
+  deletePatient: (id: string) => void;
+  optimizationResult: OptimizationResult | null;
+  isOptimizing: boolean;
+  optimizeRoute: () => void;
+  exportPatients: () => string;
+  importPatients: (csvContent: string) => void;
+  resetToDefault: () => void;
+  searchQuery: string;
+  setSearchQuery: (query: string) => void;
+  filteredPatients: Patient[];
+}
+
+export const usePatients = (): UsePatientsResult => {
+  const [patients, setPatients] = useState<Patient[]>(() => {
+    // Charger depuis localStorage si disponible
+    const saved = localStorage.getItem('delivery-patients');
+    return saved ? JSON.parse(saved) : getDefaultPatients();
+  });
+  
+  const [optimizationResult, setOptimizationResult] = useState<OptimizationResult | null>(null);
+  const [isOptimizing, setIsOptimizing] = useState<boolean>(false);
+  const [searchQuery, setSearchQuery] = useState<string>('');
+
+  // Sauvegarder dans localStorage à chaque changement
+  useEffect(() => {
+    localStorage.setItem('delivery-patients', JSON.stringify(patients));
+  }, [patients]);
+
+  // Filtrer les patients en fonction de la recherche
+  const filteredPatients = useCallback(() => {
+    if (!searchQuery.trim()) return patients;
+    const query = searchQuery.toLowerCase();
+    return patients.filter(p => 
+      p.nom.toLowerCase().includes(query) || 
+      p.adresse.toLowerCase().includes(query)
+    );
+  }, [patients, searchQuery])();
+
+  // Ajouter un patient
+  const addPatient = useCallback((patientData: Omit<Patient, 'id' | 'isPharmacy'>) => {
+    const newPatient: Patient = {
+      ...patientData,
+      id: `patient-${Date.now()}`,
+      isPharmacy: false,
+    };
+    setPatients(prev => [...prev, newPatient]);
+  }, []);
+
+  // Mettre à jour un patient
+  const updatePatient = useCallback((id: string, updatedData: Partial<Patient>) => {
+    setPatients(prev => 
+      prev.map(p => p.id === id ? { ...p, ...updatedData } : p)
+    );
+  }, []);
+
+  // Supprimer un patient (ne pas supprimer la pharmacie)
+  const deletePatient = useCallback((id: string) => {
+    setPatients(prev => {
+      const pharmacy = prev.find(p => p.isPharmacy);
+      if (pharmacy?.id === id) {
+        // Ne pas supprimer la pharmacie
+        return prev;
+      }
+      return prev.filter(p => p.id !== id);
+    });
+  }, []);
+
+  // Optimiser l'itinéraire
+  const optimizeRoute = useCallback(() => {
+    setIsOptimizing(true);
+    
+    // Utiliser setTimeout pour simuler un traitement asynchrone
+    // et permettre à l'UI de montrer l'état de chargement
+    setTimeout(() => {
+      try {
+        const result = optimizeRoute(patients);
+        setOptimizationResult(result);
+      } catch (error) {
+        console.error('Erreur lors de l\'optimisation:', error);
+      } finally {
+        setIsOptimizing(false);
+      }
+    }, 100);
+  }, [patients]);
+
+  // Exporter en CSV
+  const exportPatients = useCallback(() => {
+    return exportToCSV(patients);
+  }, [patients]);
+
+  // Importer depuis CSV
+  const importPatients = useCallback((csvContent: string) => {
+    try {
+      const importedPatients = importFromCSV(csvContent);
+      // Conserver la pharmacie existante si elle existe
+      const existingPharmacy = patients.find(p => p.isPharmacy);
+      
+      setPatients(prev => {
+        const newPatients = [...importedPatients];
+        // Ajouter la pharmacie existante si elle n'est pas dans l'import
+        if (existingPharmacy && !importedPatients.some(p => p.isPharmacy)) {
+          newPatients.unshift(existingPharmacy);
+        }
+        return newPatients;
+      });
+    } catch (error) {
+      console.error('Erreur lors de l\'import:', error);
+      throw error;
+    }
+  }, [patients]);
+
+  // Réinitialiser aux données par défaut
+  const resetToDefault = useCallback(() => {
+    setPatients(getDefaultPatients());
+    setOptimizationResult(null);
+  }, []);
+
+  return {
+    patients,
+    setPatients,
+    addPatient,
+    updatePatient,
+    deletePatient,
+    optimizationResult,
+    isOptimizing,
+    optimizeRoute,
+    exportPatients,
+    importPatients,
+    resetToDefault,
+    searchQuery,
+    setSearchQuery,
+    filteredPatients,
+  };
+};
