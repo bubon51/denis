@@ -158,6 +158,7 @@ const App: React.FC = () => {
         onSubmit={handleFormSubmit}
         initialPatient={editingPatient || undefined}
         isGeocoding={isGeocoding}
+        existingPatients={patients}
       />
 
       {/* Bouton flottant pour ajouter un patient */}

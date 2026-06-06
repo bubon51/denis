@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, Form, Input, Button, message, Spin } from 'antd';
 import { Patient } from '../types';
+import AddressAutocomplete from './AddressAutocomplete';
 
 interface PatientFormProps {
   visible: boolean;
@@ -8,6 +9,7 @@ interface PatientFormProps {
   onSubmit: (patient: Omit<Patient, 'id' | 'isPharmacy' | 'latitude' | 'longitude'>) => Promise<void>;
   initialPatient?: Partial<Patient>;
   isGeocoding?: boolean;
+  existingPatients?: Patient[];
 }
 
 const PatientForm: React.FC<PatientFormProps> = ({
@@ -16,15 +18,19 @@ const PatientForm: React.FC<PatientFormProps> = ({
   onSubmit,
   initialPatient,
   isGeocoding = false,
+  existingPatients = [],
 }) => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
+  const [addressValue, setAddressValue] = useState('');
 
   useEffect(() => {
     if (initialPatient) {
       form.setFieldsValue(initialPatient);
+      setAddressValue(initialPatient.adresse || '');
     } else {
       form.resetFields();
+      setAddressValue('');
     }
   }, [initialPatient, form]);
 
@@ -35,15 +41,26 @@ const PatientForm: React.FC<PatientFormProps> = ({
       setLoading(true);
       await onSubmit({
         nom: values.nom,
-        adresse: values.adresse,
+        adresse: addressValue,
       });
       form.resetFields();
+      setAddressValue('');
       message.success(initialPatient ? 'Patient modifié avec succès' : 'Patient ajouté avec succès');
     } catch (error) {
       console.error('Erreur:', error);
       message.error(error instanceof Error ? error.message : 'Une erreur est survenue');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleAddressSelect = (value: string, option: { value: string; label: string; patient?: Patient }) => {
+    setAddressValue(value);
+    form.setFieldsValue({ adresse: value });
+    
+    // Si un patient existant est sélectionné, on peut pré-remplir le nom
+    if (option.patient && !form.getFieldValue('nom')) {
+      form.setFieldsValue({ nom: option.patient.nom });
     }
   };
 
@@ -67,6 +84,7 @@ const PatientForm: React.FC<PatientFormProps> = ({
         </Button>,
       ]}
       destroyOnClose
+      width={600}
     >
       {isGeocoding && (
         <div style={{ textAlign: 'center', marginBottom: 16 }}>
@@ -84,18 +102,32 @@ const PatientForm: React.FC<PatientFormProps> = ({
           label="Nom"
           rules={[{ required: true, message: 'Veuillez entrer un nom' }]}
         >
-          <Input placeholder="Nom du patient" />
+          <Input 
+            placeholder="Nom du patient"
+            onChange={(e) => {
+              // Si on change le nom, on peut essayer de trouver un patient existant
+              const name = e.target.value;
+              const existing = existingPatients.find(p => p.nom.toLowerCase() === name.toLowerCase());
+              if (existing && !addressValue) {
+                setAddressValue(existing.adresse);
+                form.setFieldsValue({ adresse: existing.adresse });
+              }
+            }}
+          />
         </Form.Item>
 
         <Form.Item
           name="adresse"
           label="Adresse"
           rules={[{ required: true, message: 'Veuillez entrer une adresse' }]}
-          help="Les coordonnées GPS seront automatiquement déterminées à partir de l'adresse"
+          help="Commencez à taper un nom ou une adresse pour voir les suggestions"
         >
-          <Input.TextArea
+          <AddressAutocomplete
+            value={addressValue}
+            onChange={setAddressValue}
+            onSelect={handleAddressSelect}
+            patients={existingPatients}
             placeholder="Ex: 133 Avenue du Mahatma Gandhi, 97441 Sainte-Suzanne"
-            rows={3}
           />
         </Form.Item>
       </Form>

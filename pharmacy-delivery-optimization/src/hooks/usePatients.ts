@@ -4,6 +4,7 @@ import { getDefaultPatients } from '../data/defaultPatients';
 import { optimizeRoute as optimizeRouteFunction } from '../utils/tsp';
 import { exportToCSV, importFromCSV } from '../utils/csv';
 import { geocodeAddress } from '../utils/geocoding';
+import { calculateFullRouteMetrics } from '../utils/routing';
 
 interface UsePatientsResult {
   patients: Patient[];
@@ -13,7 +14,7 @@ interface UsePatientsResult {
   deletePatient: (id: string) => void;
   optimizationResult: OptimizationResult | null;
   isOptimizing: boolean;
-  optimizeRoute: () => void;
+  optimizeRoute: () => Promise<void>;
   exportPatients: () => string;
   importPatients: (csvContent: string) => void;
   resetToDefault: () => void;
@@ -21,6 +22,7 @@ interface UsePatientsResult {
   setSearchQuery: (query: string) => void;
   filteredPatients: Patient[];
   isGeocoding: boolean;
+  getPatientByName: (name: string) => Patient | undefined;
 }
 
 export const usePatients = (): UsePatientsResult => {
@@ -112,22 +114,35 @@ export const usePatients = (): UsePatientsResult => {
     });
   }, []);
 
-  // Optimiser l'itinéraire
-  const optimizeRoute = useCallback(() => {
+  // Optimiser l'itinéraire avec calcul des distances réelles
+  const optimizeRoute = useCallback(async () => {
     setIsOptimizing(true);
     
-    // Utiliser setTimeout pour simuler un traitement asynchrone
-    // et permettre à l'UI de montrer l'état de chargement
-    setTimeout(() => {
-      try {
-        const result = optimizeRouteFunction(patients);
-        setOptimizationResult(result);
-      } catch (error) {
-        console.error('Erreur lors de l\'optimisation:', error);
-      } finally {
-        setIsOptimizing(false);
-      }
-    }, 100);
+    try {
+      // Optimiser l'ordre des patients (inclut déjà le retour à la pharmacie)
+      const result = optimizeRouteFunction(patients);
+      
+      // Calculer les métriques réelles (distance routière, temps réel)
+      // Inclut le retour à la pharmacie
+      const routePatients = result.route.map(rp => rp.patient);
+      const { distance, time } = await calculateFullRouteMetrics(routePatients);
+      
+      // Mettre à jour le résultat avec les distances réelles
+      setOptimizationResult({
+        ...result,
+        totalDistance: Math.round(distance * 100) / 100,
+        totalTime: time,
+      });
+    } catch (error) {
+      console.error('Erreur lors de l\'optimisation:', error);
+    } finally {
+      setIsOptimizing(false);
+    }
+  }, [patients]);
+
+  // Fonction pour récupérer un patient par son nom (pour l'autocomplétion)
+  const getPatientByName = useCallback((name: string): Patient | undefined => {
+    return patients.find(p => p.nom.toLowerCase() === name.toLowerCase());
   }, [patients]);
 
   // Exporter en CSV
@@ -178,5 +193,6 @@ export const usePatients = (): UsePatientsResult => {
     setSearchQuery,
     filteredPatients,
     isGeocoding,
+    getPatientByName,
   };
 };

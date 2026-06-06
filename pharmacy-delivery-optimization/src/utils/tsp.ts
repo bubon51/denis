@@ -61,7 +61,10 @@ export const greedyTSP = (patients: Patient[]): OptimizationResult => {
     current = nextPatient;
   }
 
-  // Calculer la distance totale
+  // Ajouter le retour à la pharmacie pour fermer la boucle
+  route.push({ patient: pharmacy, order: route.length });
+
+  // Calculer la distance totale (incluant le retour à la pharmacie)
   const routePatients = route.map(rp => rp.patient);
   const totalDistance = calculateTotalDistance(routePatients);
   const totalTime = calculateTotalTime(totalDistance);
@@ -82,7 +85,8 @@ export const twoOptOptimization = (
   // Commencer avec la solution gloutonne
   let result = greedyTSP(patients);
   
-  if (result.route.length <= 2) {
+  if (result.route.length <= 3) {
+    // Si on a seulement pharmacie + 1 patient + retour, pas besoin d'optimiser
     return result;
   }
 
@@ -93,6 +97,7 @@ export const twoOptOptimization = (
     improved = false;
     iterations++;
 
+    // Ne pas toucher au premier et dernier point (pharmacie de départ et retour)
     for (let i = 1; i < result.route.length - 2; i++) {
       for (let j = i + 1; j < result.route.length - 1; j++) {
         // Créer une nouvelle route avec l'échange 2-opt
