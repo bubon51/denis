@@ -1,10 +1,10 @@
 import { useState, useCallback, useEffect } from 'react';
-import { Patient, OptimizationResult } from '../types';
+import { Patient, OptimizationResult, DEFAULT_PHARMACY } from '../types';
 import { getDefaultPatients } from '../data/defaultPatients';
 import { optimizeRoute as optimizeRouteFunction } from '../utils/tsp';
 import { exportToCSV, importFromCSV } from '../utils/csv';
-import { geocodeAddress } from '../utils/geocoding';
-import { calculateFullRouteMetrics } from '../utils/routing';
+import { geocodeAddress, clearGeocodeCache } from '../utils/geocoding';
+import { calculateRouteDistance, calculateRouteTime, fetchRoutePolyline } from '../utils/distance';
 
 interface UsePatientsResult {
   patients: Patient[];
@@ -22,25 +22,41 @@ interface UsePatientsResult {
   setSearchQuery: (query: string) => void;
   filteredPatients: Patient[];
   isGeocoding: boolean;
-  getPatientByName: (name: string) => Patient | undefined;
+  routePolyline: [number, number][] | null;
+  getPatientByName: (nom: string, prenom: string) => Patient | undefined;
 }
+
+// Clé pour le localStorage
+const STORAGE_KEY = 'pharmacy-delivery-patients';
 
 export const usePatients = (): UsePatientsResult => {
   const [patients, setPatients] = useState<Patient[]>(() => {
     // Charger depuis localStorage si disponible
-    const saved = localStorage.getItem('delivery-patients');
-    return saved ? JSON.parse(saved) : getDefaultPatients();
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        // Vérifier que la pharmacie est présente
+        if (!parsed.some((p: Patient) => p.isPharmacy)) {
+          parsed.unshift(DEFAULT_PHARMACY);
+        }
+        return parsed;
+      } catch {
+        return getDefaultPatients();
+      }
+    }
+    return getDefaultPatients();
   });
-  
-  const [isGeocoding, setIsGeocoding] = useState<boolean>(false);
   
   const [optimizationResult, setOptimizationResult] = useState<OptimizationResult | null>(null);
   const [isOptimizing, setIsOptimizing] = useState<boolean>(false);
+  const [isGeocoding, setIsGeocoding] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [routePolyline, setRoutePolyline] = useState<[number, number][] | null>(null);
 
   // Sauvegarder dans localStorage à chaque changement
   useEffect(() => {
-    localStorage.setItem('delivery-patients', JSON.stringify(patients));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(patients));
   }, [patients]);
 
   // Filtrer les patients en fonction de la recherche
@@ -49,7 +65,9 @@ export const usePatients = (): UsePatientsResult => {
     const query = searchQuery.toLowerCase();
     return patients.filter(p => 
       p.nom.toLowerCase().includes(query) || 
-      p.adresse.toLowerCase().includes(query)
+      p.prenom.toLowerCase().includes(query) ||
+      p.adresse.toLowerCase().includes(query) ||
+      `${p.prenom} ${p.nom}`.toLowerCase().includes(query)
     );
   }, [patients, searchQuery])();
 
@@ -66,7 +84,6 @@ export const usePatients = (): UsePatientsResult => {
         latitude,
         longitude,
         isPharmacy: false,
-        prenom: patientData.prenom, // Inclure le prénom
       };
       setPatients(prev => [...prev, newPatient]);
     } catch (error) {
@@ -113,20 +130,33 @@ export const usePatients = (): UsePatientsResult => {
       }
       return prev.filter(p => p.id !== id);
     });
-  }, []);
+    
+    // Réinitialiser l'optimisation si on supprime un patient
+    if (optimizationResult) {
+      setOptimizationResult(null);
+      setRoutePolyline(null);
+    }
+  }, [optimizationResult]);
 
-  // Optimiser l'itinéraire avec calcul des distances réelles
+  // Optimiser l'itinéraire avec calcul des distances routières
   const optimizeRoute = useCallback(async () => {
     setIsOptimizing(true);
+    setRoutePolyline(null);
     
     try {
-      // Optimiser l'ordre des patients (inclut déjà le retour à la pharmacie)
+      // Optimiser l'ordre des patients
       const result = optimizeRouteFunction(patients);
       
-      // Calculer les métriques réelles (distance routière, temps réel)
-      // Inclut le retour à la pharmacie
-      const routePatients = result.route.map(rp => rp.patient);
-      const { distance, time } = await calculateFullRouteMetrics(routePatients);
+      // Extraire les waypoints pour le calcul routier
+      const waypoints: [number, number][] = result.route.map(rp => [rp.patient.latitude, rp.patient.longitude]);
+      
+      // Récupérer la polyline de l'itinéraire
+      const polyline = await fetchRoutePolyline(waypoints);
+      setRoutePolyline(polyline);
+      
+      // Calculer les métriques réelles via OSRM
+      const distance = await calculateRouteDistance(waypoints);
+      const time = await calculateRouteTime(waypoints);
       
       // Mettre à jour le résultat avec les distances réelles
       setOptimizationResult({
@@ -141,11 +171,6 @@ export const usePatients = (): UsePatientsResult => {
     }
   }, [patients]);
 
-  // Fonction pour récupérer un patient par son nom (pour l'autocomplétion)
-  const getPatientByName = useCallback((name: string): Patient | undefined => {
-    return patients.find(p => p.nom.toLowerCase() === name.toLowerCase());
-  }, [patients]);
-
   // Exporter en CSV
   const exportPatients = useCallback(() => {
     return exportToCSV(patients);
@@ -158,7 +183,7 @@ export const usePatients = (): UsePatientsResult => {
       // Conserver la pharmacie existante si elle existe
       const existingPharmacy = patients.find(p => p.isPharmacy);
       
-      setPatients(() => {
+      setPatients(prev => {
         const newPatients = [...importedPatients];
         // Ajouter la pharmacie existante si elle n'est pas dans l'import
         if (existingPharmacy && !importedPatients.some(p => p.isPharmacy)) {
@@ -176,7 +201,18 @@ export const usePatients = (): UsePatientsResult => {
   const resetToDefault = useCallback(() => {
     setPatients(getDefaultPatients());
     setOptimizationResult(null);
+    setRoutePolyline(null);
+    setSearchQuery('');
+    clearGeocodeCache();
   }, []);
+
+  // Fonction pour récupérer un patient par son nom et prénom
+  const getPatientByName = useCallback((nom: string, prenom: string): Patient | undefined => {
+    return patients.find(p => 
+      p.nom.toLowerCase() === nom.toLowerCase() && 
+      p.prenom.toLowerCase() === prenom.toLowerCase()
+    );
+  }, [patients]);
 
   return {
     patients,
@@ -194,6 +230,7 @@ export const usePatients = (): UsePatientsResult => {
     setSearchQuery,
     filteredPatients,
     isGeocoding,
+    routePolyline,
     getPatientByName,
   };
 };

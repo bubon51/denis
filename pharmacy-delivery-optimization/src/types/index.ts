@@ -3,10 +3,11 @@
 export interface Patient {
   id: string;
   nom: string;
-  prenom?: string; // Prénom optionnel
+  prenom: string;
   adresse: string;
   latitude: number;
   longitude: number;
+  tempsLivraison: number; // en minutes
   isPharmacy?: boolean; // Point de départ (pharmacie)
 }
 
@@ -17,8 +18,8 @@ export interface RoutePoint {
 
 export interface OptimizationResult {
   route: RoutePoint[];
-  totalDistance: number; // en km
-  totalTime: number; // en minutes (basé sur la distance et vitesse moyenne)
+  totalDistance: number; // en km (distance routière)
+  totalTime: number; // en minutes (temps de trajet réel)
   optimized: boolean;
 }
 
@@ -28,6 +29,7 @@ export interface CSVPatient {
   adresse: string;
   latitude: string;
   longitude: string;
+  tempsLivraison: string;
 }
 
 // Coordonnées pour La Réunion (centre approximatif)
@@ -39,3 +41,15 @@ export const REUNION_BOUNDS: [[number, number], [number, number]] = [
   [-21.4, 55.2], // Sud-Ouest
   [-20.8, 55.8]  // Nord-Est
 ];
+
+// Pharmacie par défaut (point de départ)
+export const DEFAULT_PHARMACY: Patient = {
+  id: 'pharmacy-1',
+  nom: 'Pharmacie Centrale',
+  prenom: '',
+  adresse: '133 Avenue du Mahatma Gandhi, 97441 Sainte-Suzanne',
+  latitude: -20.9333,
+  longitude: 55.6167,
+  tempsLivraison: 0,
+  isPharmacy: true,
+};

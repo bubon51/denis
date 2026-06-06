@@ -11,7 +11,7 @@ interface SearchBarProps {
 const SearchBar: React.FC<SearchBarProps> = ({
   value,
   onChange,
-  placeholder = 'Rechercher par nom ou adresse...',
+  placeholder = 'Rechercher par nom, prénom ou adresse...',
 }) => {
   return (
     <Space.Compact style={{ width: '100%', marginBottom: 16 }}>

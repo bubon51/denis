@@ -22,7 +22,7 @@ const PatientTable: React.FC<PatientTableProps> = ({
     {
       title: 'Nom et Prénom',
       key: 'fullName',
-      sorter: (a, b) => `${a.prenom || ''} ${a.nom}`.localeCompare(`${b.prenom || ''} ${b.nom}`),
+      sorter: (a, b) => `${a.prenom} ${a.nom}`.localeCompare(`${b.prenom} ${b.nom}`),
       render: (_, record) => (
         <span>
           {record.isPharmacy && (
@@ -39,7 +39,7 @@ const PatientTable: React.FC<PatientTableProps> = ({
       dataIndex: 'adresse',
       key: 'adresse',
       sorter: (a, b) => a.adresse.localeCompare(b.adresse),
-      render: (text) => <span style={{ maxWidth: 200 }}>{text}</span>,
+      render: (text) => <span style={{ maxWidth: 200, display: 'block' }}>{text}</span>,
     },
     {
       title: 'Coordonnées',
@@ -49,6 +49,13 @@ const PatientTable: React.FC<PatientTableProps> = ({
           {record.latitude.toFixed(4)}, {record.longitude.toFixed(4)}
         </span>
       ),
+    },
+    {
+      title: 'Temps livraison',
+      dataIndex: 'tempsLivraison',
+      key: 'tempsLivraison',
+      sorter: (a, b) => a.tempsLivraison - b.tempsLivraison,
+      render: (text) => <span>{text} min</span>,
     },
     {
       title: 'Actions',

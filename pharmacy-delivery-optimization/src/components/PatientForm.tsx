@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, Form, Input, Button, message, Spin } from 'antd';
+import { Modal, Form, Input, InputNumber, Button, message, Spin, AutoComplete } from 'antd';
 import { Patient } from '../types';
-import AddressAutocomplete from './AddressAutocomplete';
 
 interface PatientFormProps {
   visible: boolean;
@@ -22,17 +21,36 @@ const PatientForm: React.FC<PatientFormProps> = ({
 }) => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
-  const [addressValue, setAddressValue] = useState('');
+  const [addressOptions, setAddressOptions] = useState<{ value: string; label: string }[]>([]);
 
   useEffect(() => {
     if (initialPatient) {
       form.setFieldsValue(initialPatient);
-      setAddressValue(initialPatient.adresse || '');
     } else {
       form.resetFields();
-      setAddressValue('');
     }
   }, [initialPatient, form]);
+
+  // Mettre à jour les options d'autocomplétion
+  const updateAddressOptions = (nom?: string, prenom?: string) => {
+    if (!nom && !prenom) {
+      setAddressOptions([]);
+      return;
+    }
+
+    const query = (nom || '') + ' ' + (prenom || '');
+    const filtered = existingPatients.filter(p => 
+      p.nom.toLowerCase().includes(nom?.toLowerCase() || '') &&
+      p.prenom.toLowerCase().includes(prenom?.toLowerCase() || '')
+    );
+
+    const options = filtered.map(patient => ({
+      value: patient.adresse,
+      label: `${patient.prenom} ${patient.nom} - ${patient.adresse}`,
+    }));
+
+    setAddressOptions(options);
+  };
 
   const handleSubmit = async () => {
     try {
@@ -41,10 +59,11 @@ const PatientForm: React.FC<PatientFormProps> = ({
       setLoading(true);
       await onSubmit({
         nom: values.nom,
-        adresse: addressValue,
+        prenom: values.prenom || '',
+        adresse: values.adresse,
+        tempsLivraison: values.tempsLivraison || 0,
       });
       form.resetFields();
-      setAddressValue('');
       message.success(initialPatient ? 'Patient modifié avec succès' : 'Patient ajouté avec succès');
     } catch (error) {
       console.error('Erreur:', error);
@@ -54,14 +73,20 @@ const PatientForm: React.FC<PatientFormProps> = ({
     }
   };
 
-  const handleAddressSelect = (value: string, option: { value: string; label: string; patient?: Patient }) => {
-    setAddressValue(value);
+  const handleNomChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const nom = e.target.value;
+    const prenom = form.getFieldValue('prenom');
+    updateAddressOptions(nom, prenom);
+  };
+
+  const handlePrenomChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const prenom = e.target.value;
+    const nom = form.getFieldValue('nom');
+    updateAddressOptions(nom, prenom);
+  };
+
+  const handleAddressSelect = (value: string) => {
     form.setFieldsValue({ adresse: value });
-    
-    // Si un patient existant est sélectionné, on peut pré-remplir le nom
-    if (option.patient && !form.getFieldValue('nom')) {
-      form.setFieldsValue({ nom: option.patient.nom });
-    }
   };
 
   return (
@@ -104,22 +129,8 @@ const PatientForm: React.FC<PatientFormProps> = ({
             style={{ flex: 1 }}
           >
             <Input 
-              placeholder="Prénom (optionnel)"
-              onChange={(e) => {
-                // Si on change le prénom, essayer de trouver un patient existant
-                const prenom = e.target.value;
-                const nom = form.getFieldValue('nom');
-                if (nom) {
-                  const existing = existingPatients.find(p => 
-                    p.nom.toLowerCase() === nom.toLowerCase() &&
-                    p.prenom?.toLowerCase() === prenom.toLowerCase()
-                  );
-                  if (existing && !addressValue) {
-                    setAddressValue(existing.adresse);
-                    form.setFieldsValue({ adresse: existing.adresse });
-                  }
-                }
-              }}
+              placeholder="Prénom"
+              onChange={handlePrenomChange}
             />
           </Form.Item>
 
@@ -131,28 +142,7 @@ const PatientForm: React.FC<PatientFormProps> = ({
           >
             <Input 
               placeholder="Nom"
-              onChange={(e) => {
-                // Si on change le nom, essayer de trouver un patient existant
-                const nom = e.target.value;
-                const prenom = form.getFieldValue('prenom');
-                if (prenom) {
-                  const existing = existingPatients.find(p => 
-                    p.nom.toLowerCase() === nom.toLowerCase() &&
-                    p.prenom?.toLowerCase() === prenom.toLowerCase()
-                  );
-                  if (existing && !addressValue) {
-                    setAddressValue(existing.adresse);
-                    form.setFieldsValue({ adresse: existing.adresse });
-                  }
-                } else {
-                  // Si pas de prénom, chercher par nom seul
-                  const existing = existingPatients.find(p => p.nom.toLowerCase() === nom.toLowerCase());
-                  if (existing && !addressValue) {
-                    setAddressValue(existing.adresse);
-                    form.setFieldsValue({ adresse: existing.adresse });
-                  }
-                }
-              }}
+              onChange={handleNomChange}
             />
           </Form.Item>
         </div>
@@ -161,14 +151,34 @@ const PatientForm: React.FC<PatientFormProps> = ({
           name="adresse"
           label="Adresse"
           rules={[{ required: true, message: 'Veuillez entrer une adresse' }]}
-          help="Commencez à taper un nom/prénom ou une adresse pour voir les suggestions"
+          help="Les coordonnées GPS seront automatiquement déterminées. Commencez à taper nom + prénom pour l'autocomplétion."
         >
-          <AddressAutocomplete
-            value={addressValue}
-            onChange={setAddressValue}
+          <AutoComplete
+            options={addressOptions}
             onSelect={handleAddressSelect}
-            patients={existingPatients}
+            onChange={(value) => form.setFieldsValue({ adresse: value })}
             placeholder="Ex: 133 Avenue du Mahatma Gandhi, 97441 Sainte-Suzanne"
+            filterOption={(inputValue, option) => 
+              option?.label?.toLowerCase().includes(inputValue.toLowerCase()) ||
+              option?.value?.toLowerCase().includes(inputValue.toLowerCase()) ||
+              true
+            }
+          />
+        </Form.Item>
+
+        <Form.Item
+          name="tempsLivraison"
+          label="Temps de livraison (minutes)"
+          rules={[
+            { required: true, message: 'Veuillez entrer un temps de livraison' },
+            { type: 'number', min: 0, max: 120, message: 'Le temps doit être entre 0 et 120 minutes' },
+          ]}
+        >
+          <InputNumber
+            placeholder="Temps de livraison"
+            min={0}
+            max={120}
+            style={{ width: '100%' }}
           />
         </Form.Item>
       </Form>

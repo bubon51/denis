@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
 import L from 'leaflet';
 import { Patient, OptimizationResult } from '../types';
 import { REUNION_CENTER, REUNION_ZOOM, REUNION_BOUNDS } from '../types';
@@ -34,120 +34,40 @@ const MapBoundsUpdater: React.FC<{ bounds: L.LatLngBoundsExpression }> = ({ boun
   return null;
 };
 
-// Composant pour afficher l'itinéraire avec Leaflet Routing Machine
-const RoutingControl: React.FC<{ 
-  waypoints: L.LatLngExpression[]; 
-  routeColor?: string; 
-}> = ({ waypoints, routeColor = '#f5222d' }) => {
-  useEffect(() => {
-    // Charger Leaflet Routing Machine dynamiquement
-    const loadLrm = async () => {
-      // Vérifier si L.Routing est déjà chargé
-      if ((L as any).Routing) {
-        createRoutingControl();
-        return;
-      }
+// Composant pour afficher l'itinéraire
+const RouteLayer: React.FC<{ 
+  routePolyline: [number, number][] | null;
+  color?: string;
+}> = ({ routePolyline, color = '#f5222d' }) => {
+  if (!routePolyline || routePolyline.length < 2) {
+    return null;
+  }
 
-      // Charger le CSS de Leaflet Routing Machine
-      const lrmCss = document.createElement('link');
-      lrmCss.rel = 'stylesheet';
-      lrmCss.href = 'https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css';
-      document.head.appendChild(lrmCss);
-
-      // Charger le JS de Leaflet Routing Machine
-      const lrmJs = document.createElement('script');
-      lrmJs.src = 'https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js';
-      lrmJs.onload = createRoutingControl;
-      lrmJs.onerror = () => {
-        console.error('Failed to load Leaflet Routing Machine');
-        // Fallback: afficher une ligne droite
-        createPolylineFallback();
-      };
-      document.body.appendChild(lrmJs);
-    };
-
-    const createRoutingControl = () => {
-      const map = (window as any).currentMap;
-      if (!map || !waypoints.length) return;
-
-      // Supprimer les contrôles de routage existants
-      (map as any).eachLayer(layer => {
-        if (layer instanceof (L as any).Routing.Control) {
-          map.removeLayer(layer);
-        }
-      });
-
-      // Créer le contrôle de routage
-      const control = (L as any).Routing.control({
-        waypoints: waypoints.map(wp => L.latLng(wp)),
-        routeWhileDragging: false,
-        show: false, // Ne pas afficher le panneau de contrôle
-        addWaypoints: false,
-        draggableWaypoints: false,
-        fitSelectedRoutes: false,
-        lineOptions: {
-          styles: [{ color: routeColor, weight: 4, opacity: 0.8 }],
-        },
-      }).addTo(map);
-
-      // Masquer le panneau de contrôle
-      setTimeout(() => {
-        const container = control.getContainer();
-        if (container) {
-          container.style.display = 'none';
-        }
-      }, 100);
-    };
-
-    const createPolylineFallback = () => {
-      const map = (window as any).currentMap;
-      if (!map || !waypoints.length) return;
-
-      // Supprimer les polylines existantes
-      (map as any).eachLayer(layer => {
-        if (layer instanceof L.Polyline) {
-          map.removeLayer(layer);
-        }
-      });
-
-      // Créer une polyline simple
-      L.polyline(waypoints, {
-        color: routeColor,
+  return (
+    <Polyline
+      positions={routePolyline as L.LatLngExpression[]}
+      pathOptions={{
+        color: color,
         weight: 4,
         opacity: 0.8,
-      }).addTo(map);
-    };
-
-    // Stocker la référence de la carte
-    (window as any).currentMap = null;
-
-    loadLrm();
-
-    return () => {
-      // Nettoyage
-      const map = (window as any).currentMap;
-      if (map) {
-        (map as any).eachLayer(layer => {
-          if (layer instanceof (L as any).Routing.Control || layer instanceof L.Polyline) {
-            map.removeLayer(layer);
-          }
-        });
-      }
-    };
-  }, [waypoints, routeColor]);
-
-  return null;
+        lineCap: 'round',
+        lineJoin: 'round',
+      }}
+    />
+  );
 };
 
 interface MapViewProps {
   patients: Patient[];
   optimizationResult: OptimizationResult | null;
+  routePolyline: [number, number][] | null;
   height?: string;
 }
 
 const MapView: React.FC<MapViewProps> = ({
   patients,
   optimizationResult,
+  routePolyline,
   height = '500px',
 }) => {
   const [mapKey, setMapKey] = useState(0);
@@ -155,7 +75,7 @@ const MapView: React.FC<MapViewProps> = ({
   // Recharger la carte lorsque les patients ou l'itinéraire changent
   useEffect(() => {
     setMapKey(prev => prev + 1);
-  }, [patients, optimizationResult]);
+  }, [patients, routePolyline]);
 
   // Calculer les limites en fonction des patients
   const getBounds = (): L.LatLngBoundsExpression => {
@@ -179,18 +99,8 @@ const MapView: React.FC<MapViewProps> = ({
     ] as L.LatLngBoundsExpression;
   };
 
-  // Obtenir les waypoints pour l'itinéraire (incluant le retour à la pharmacie)
-  const getRouteWaypoints = (): L.LatLngExpression[] => {
-    if (!optimizationResult || optimizationResult.route.length === 0) {
-      return [];
-    }
-    
-    // Inclure tous les points de l'itinéraire (y compris le retour à la pharmacie)
-    return optimizationResult.route.map(rp => [rp.patient.latitude, rp.patient.longitude] as L.LatLngExpression);
-  };
-
   return (
-    <div style={{ height, width: '100%', borderRadius: '8px', overflow: 'hidden' }}>
+    <div style={{ height, width: '100%', borderRadius: '8px', overflow: 'hidden', position: 'relative' }}>
       <MapContainer
         key={mapKey}
         center={REUNION_CENTER}
@@ -198,9 +108,6 @@ const MapView: React.FC<MapViewProps> = ({
         style={{ height: '100%', width: '100%' }}
         maxBounds={REUNION_BOUNDS as L.LatLngBoundsExpression}
         maxBoundsViscosity={1.0}
-        whenCreated={(map) => {
-          (window as any).currentMap = map;
-        }}
       >
         <TileLayer
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -209,6 +116,9 @@ const MapView: React.FC<MapViewProps> = ({
 
         {/* Limites de La Réunion */}
         <MapBoundsUpdater bounds={getBounds()} />
+
+        {/* Itinéraire routier (en dessous des marqueurs) */}
+        <RouteLayer routePolyline={routePolyline} color="#f5222d" />
 
         {/* Marqueurs des patients */}
         {patients.map((patient) => (
@@ -223,13 +133,16 @@ const MapView: React.FC<MapViewProps> = ({
                   {patient.isPharmacy ? '🏥 Pharmacie' : '👤 Patient'}
                 </h4>
                 <p style={{ margin: '4px 0', fontWeight: 'bold' }}>
-                  {patient.nom}
+                  {patient.prenom && `${patient.prenom} `}{patient.nom}
                 </p>
                 <p style={{ margin: '4px 0', fontSize: '12px', color: '#666' }}>
                   {patient.adresse}
                 </p>
                 <p style={{ margin: '4px 0', fontSize: '12px' }}>
                   Coordonnées: {patient.latitude.toFixed(4)}, {patient.longitude.toFixed(4)}
+                </p>
+                <p style={{ margin: '4px 0', fontSize: '12px' }}>
+                  Temps livraison: {patient.tempsLivraison} min
                 </p>
                 {optimizationResult && (
                   <p style={{ margin: '4px 0', fontSize: '12px', color: '#52c41a' }}>
@@ -240,17 +153,18 @@ const MapView: React.FC<MapViewProps> = ({
             </Popup>
           </Marker>
         ))}
-
-        {/* Itinéraire avec Leaflet Routing Machine */}
-        {optimizationResult && optimizationResult.route.length > 1 && (
-          <RoutingControl 
-            waypoints={getRouteWaypoints()} 
-            routeColor="#f5222d"
-          />
-        )}
       </MapContainer>
     </div>
   );
 };
 
-export default MapView;
+// Composant wrapper pour utiliser useMap
+const MapViewWrapper: React.FC<MapViewProps> = (props) => {
+  const mapRef = useRef<L.Map | null>(null);
+  
+  return (
+    <MapView {...props} />
+  );
+};
+
+export default MapViewWrapper;

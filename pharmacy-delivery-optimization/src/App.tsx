@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Layout, Typography, theme, Divider, FloatButton } from 'antd';
+import { Layout, Typography, theme, Divider, FloatButton, message } from 'antd';
 import { usePatients } from './hooks/usePatients';
 import PatientTable from './components/PatientTable';
 import PatientForm from './components/PatientForm';
@@ -26,9 +26,13 @@ const App: React.FC = () => {
     optimizationResult,
     isOptimizing,
     optimizeRoute,
+    exportPatients,
+    importPatients,
+    resetToDefault,
     searchQuery,
     setSearchQuery,
     isGeocoding,
+    routePolyline,
   } = usePatients();
 
   const [isFormVisible, setIsFormVisible] = useState(false);
@@ -54,12 +58,13 @@ const App: React.FC = () => {
       setIsFormVisible(false);
       setEditingPatient(null);
     } catch (error) {
-      // L'erreur est déjà gérée dans le hook
+      message.error(error instanceof Error ? error.message : 'Une erreur est survenue');
     }
   };
 
   const handleReset = () => {
     setSearchQuery('');
+    resetToDefault();
   };
 
   return (
@@ -88,7 +93,7 @@ const App: React.FC = () => {
               Gestion des tournées de livraison
             </Title>
             <Text type="secondary">
-              Optimisez vos tournées de livraison pour les patients à La Réunion
+              Optimisez vos tournées de livraison pour les patients à La Réunion avec calcul des distances routières
             </Text>
           </div>
 
@@ -100,7 +105,11 @@ const App: React.FC = () => {
 
           {/* Boutons d'import/export */}
           <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'flex-end' }}>
-            <ImportExportButtons onReset={handleReset} />
+            <ImportExportButtons
+              onExport={exportPatients}
+              onImport={importPatients}
+              onReset={handleReset}
+            />
           </div>
 
           {/* Panneau d'optimisation */}
@@ -116,11 +125,12 @@ const App: React.FC = () => {
           {/* Carte interactive */}
           <div style={{ marginBottom: 24 }}>
             <Title level={5} style={{ marginBottom: 16 }}>
-              Carte des livraisons
+              Carte des livraisons (itinéraire routier)
             </Title>
             <MapView
               patients={patients}
               optimizationResult={optimizationResult}
+              routePolyline={routePolyline}
               height="600px"
             />
           </div>
@@ -144,7 +154,8 @@ const App: React.FC = () => {
 
       <Footer style={{ textAlign: 'center', padding: '16px 24px' }}>
         <Text type="secondary">
-          Application d'optimisation des tournées de livraison - La Réunion
+          Application d'optimisation des tournées de livraison - La Réunion | 
+          Pharmacie: 133 Avenue du Mahatma Gandhi, 97441 Sainte-Suzanne
         </Text>
       </Footer>
 

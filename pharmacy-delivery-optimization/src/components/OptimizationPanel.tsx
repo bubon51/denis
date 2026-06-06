@@ -7,7 +7,7 @@ const { Text } = Typography;
 interface OptimizationPanelProps {
   result: OptimizationResult | null;
   isOptimizing: boolean;
-  onOptimize: () => void;
+  onOptimize: () => Promise<void>;
   patientCount: number;
 }
 
@@ -40,7 +40,7 @@ const OptimizationPanel: React.FC<OptimizationPanelProps> = ({
           </Col>
           <Col xs={24} sm={12} md={8}>
             <Statistic
-              title="Distance totale"
+              title="Distance totale (routière)"
               value={result ? `${result.totalDistance} km` : 'N/A'}
               prefix={<span>📏</span>}
               valueStyle={{ color: result ? '#52c41a' : '#999' }}
@@ -57,7 +57,7 @@ const OptimizationPanel: React.FC<OptimizationPanelProps> = ({
         </Row>
 
         {result && result.route.length > 1 && (
-          <Card size="small" title="Ordre de livraison optimisé">
+          <Card size="small" title="Ordre de livraison optimisé (tournée fermée)">
             <Space direction="vertical" size="small">
               {result.route.map((routePoint, index) => (
                 <div
@@ -66,16 +66,19 @@ const OptimizationPanel: React.FC<OptimizationPanelProps> = ({
                     display: 'flex',
                     alignItems: 'center',
                     padding: '8px 12px',
-                    backgroundColor: index === 0 ? '#e6f7ff' : '#fafafa',
+                    backgroundColor: index === 0 || index === result.route.length - 1 ? '#e6f7ff' : '#fafafa',
                     borderRadius: '4px',
-                    borderLeft: `4px solid ${index === 0 ? '#1890ff' : '#52c41a'}`,
+                    borderLeft: `4px solid ${index === 0 || index === result.route.length - 1 ? '#1890ff' : '#52c41a'}`,
                   }}
                 >
-                  <Text strong style={{ width: 30, color: index === 0 ? '#1890ff' : '#52c41a' }}>
+                  <Text strong style={{ width: 30, color: index === 0 || index === result.route.length - 1 ? '#1890ff' : '#52c41a' }}>
                     #{index + 1}
                   </Text>
                   <Text style={{ flex: 1, marginLeft: 8 }}>
-                    {routePoint.patient.nom}
+                    {routePoint.patient.isPharmacy ? 'Pharmacie' : `${routePoint.patient.prenom} ${routePoint.patient.nom}`}
+                  </Text>
+                  <Text type="secondary" style={{ fontSize: '12px' }}>
+                    {routePoint.patient.tempsLivraison} min
                   </Text>
                 </div>
               ))}
@@ -85,8 +88,8 @@ const OptimizationPanel: React.FC<OptimizationPanelProps> = ({
 
         {result && result.route.length > 1 && (
           <Alert
-            message={`L'itinéraire optimisé commence par la pharmacie et visite ${result.route.length} points.`}
-            type="info"
+            message={`✅ Tournée fermée: Pharmacie → ${result.route.length - 2} patients → Pharmacie. Distances calculées par route.`}
+            type="success"
             showIcon
           />
         )}
@@ -110,7 +113,7 @@ const OptimizationPanel: React.FC<OptimizationPanelProps> = ({
 
         {patientCount <= 1 && (
           <Text type="secondary" style={{ textAlign: 'center', display: 'block' }}>
-            Ajoutez au moins 2 patients pour calculer un itinéraire.
+            Ajoutez au moins 1 patient pour calculer un itinéraire.
           </Text>
         )}
       </Space>

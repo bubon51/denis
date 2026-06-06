@@ -41,8 +41,5 @@ Thumbs.db
 .idea/
 *.iml
 
-# Vite
-vite.config.ts
-
 # Cache
 .cache/

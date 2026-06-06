@@ -1,31 +1,25 @@
 import React, { useRef } from 'react';
 import { Button, Space, Upload, message, Tooltip } from 'antd';
 import { UploadOutlined, DownloadOutlined, DeleteOutlined } from '@ant-design/icons';
-import { usePatients } from '../hooks/usePatients';
-import { generateCSVFileName } from '../utils/csv';
 
 interface ImportExportButtonsProps {
+  onExport: () => string;
+  onImport: (csvContent: string) => void;
   onReset: () => void;
 }
 
-const ImportExportButtons: React.FC<ImportExportButtonsProps> = ({ onReset }) => {
-  const {
-    exportPatients,
-    importPatients,
-    resetToDefault,
-  } = usePatients();
-
+const ImportExportButtons: React.FC<ImportExportButtonsProps> = ({ onExport, onImport, onReset }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Exporter en CSV
   const handleExport = () => {
     try {
-      const csv = exportPatients();
+      const csv = onExport();
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = generateCSVFileName();
+      link.download = `patients_${new Date().toLocaleDateString('fr-FR').replace(/\//g, '-')}.csv`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -46,7 +40,7 @@ const ImportExportButtons: React.FC<ImportExportButtonsProps> = ({ onReset }) =>
     reader.onload = (e) => {
       try {
         const content = e.target?.result as string;
-        importPatients(content);
+        onImport(content);
         message.success('Import CSV réussi');
       } catch (error) {
         console.error('Erreur lors de l\'import:', error);
@@ -63,7 +57,6 @@ const ImportExportButtons: React.FC<ImportExportButtonsProps> = ({ onReset }) =>
 
   // Réinitialiser aux données par défaut
   const handleReset = () => {
-    resetToDefault();
     onReset();
     message.success('Données réinitialisées aux valeurs par défaut');
   };
@@ -81,14 +74,12 @@ const ImportExportButtons: React.FC<ImportExportButtonsProps> = ({ onReset }) =>
       </Tooltip>
 
       <Tooltip title="Importer des patients depuis un fichier CSV">
-        <Upload
-          showUploadList={false}
-          beforeUpload={() => false} // Désactiver l'upload automatique
+        <Button
+          icon={<UploadOutlined />}
+          onClick={() => fileInputRef.current?.click()}
         >
-          <Button icon={<UploadOutlined />}>
-            Importer depuis CSV
-          </Button>
-        </Upload>
+          Importer depuis CSV
+        </Button>
       </Tooltip>
       
       {/* Input caché pour l'import */}
@@ -100,9 +91,6 @@ const ImportExportButtons: React.FC<ImportExportButtonsProps> = ({ onReset }) =>
         style={{ display: 'none' }}
         id="csv-import-input"
       />
-      <label htmlFor="csv-import-input" style={{ display: 'none' }}>
-        Importer CSV
-      </label>
 
       <Tooltip title="Réinitialiser aux données par défaut">
         <Button

@@ -178,3 +178,8 @@ html, body {
     display: block;
   }
 }
+
+/* Style pour l'autocomplete */
+.ant-select-dropdown {
+  border-radius: 8px;
+}

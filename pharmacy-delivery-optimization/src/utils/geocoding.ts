@@ -6,22 +6,29 @@ interface GeocodeResult {
   longitude: number;
 }
 
+// Cache local pour éviter de géocoder plusieurs fois la même adresse
+const geocodeCache: Record<string, GeocodeResult> = {};
+
 // Fonction pour géocoder une adresse à La Réunion
-// Utilise Nominatim (OpenStreetMap) avec un timeout et une gestion d'erreur
 export const geocodeAddress = async (address: string): Promise<GeocodeResult> => {
-  // Nettoyer l'adresse pour l'URL
-  const cleanAddress = encodeURIComponent(address.trim());
+  // Nettoyer l'adresse
+  const cleanAddress = address.trim();
   
-  // Ajouter "La Réunion" à l'adresse pour améliorer la précision
-  const query = `${cleanAddress}, La Réunion`;
+  // Vérifier le cache
+  if (geocodeCache[cleanAddress]) {
+    return geocodeCache[cleanAddress];
+  }
   
   try {
+    // Ajouter "La Réunion" à l'adresse pour améliorer la précision
+    const query = encodeURIComponent(`${cleanAddress}, La Réunion`);
+    
     // Utiliser Nominatim API (OpenStreetMap)
     const response = await fetch(
       `https://nominatim.openstreetmap.org/search?format=json&q=${query}&limit=1&addressdetails=1`,
       {
         headers: {
-          'User-Agent': 'PharmacyDeliveryOptimization/1.0',
+          'User-Agent': 'PharmacyDeliveryOptimization/2.0 (bubon51)',
         },
       }
     );
@@ -42,36 +49,42 @@ export const geocodeAddress = async (address: string): Promise<GeocodeResult> =>
     if (result.display_name && !result.display_name.includes('Réunion')) {
       // Essayer une recherche plus spécifique
       const reunionResponse = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${cleanAddress}, Réunion&limit=1`,
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(cleanAddress)}, Réunion&limit=1`,
         {
           headers: {
-            'User-Agent': 'PharmacyDeliveryOptimization/1.0',
+            'User-Agent': 'PharmacyDeliveryOptimization/2.0 (bubon51)',
           },
         }
       );
       const reunionData = await reunionResponse.json();
       if (reunionData && reunionData.length > 0) {
-        return {
+        const finalResult = {
           latitude: parseFloat(reunionData[0].lat),
           longitude: parseFloat(reunionData[0].lon),
         };
+        geocodeCache[cleanAddress] = finalResult;
+        return finalResult;
       }
       throw new Error('Adresse non trouvée à La Réunion');
     }
     
-    return {
+    const finalResult = {
       latitude: parseFloat(result.lat),
       longitude: parseFloat(result.lon),
     };
+    
+    // Mettre en cache
+    geocodeCache[cleanAddress] = finalResult;
+    
+    return finalResult;
   } catch (error) {
     console.error('Erreur de géocodage:', error);
     // Retourner des coordonnées par défaut pour La Réunion en cas d'erreur
-    // ou lancer une erreur
-    throw new Error(`Impossible de géocoder l'adresse: ${address}. ${error instanceof Error ? error.message : String(error)}`);
+    throw new Error(`Impossible de géocoder l'adresse: ${cleanAddress}. ${error instanceof Error ? error.message : String(error)}`);
   }
 };
 
-// Fonction pour géocoder plusieurs adresses (pour l'import CSV)
+// Fonction pour géocoder plusieurs adresses
 export const geocodeAddresses = async (addresses: string[]): Promise<GeocodeResult[]> => {
   const results: GeocodeResult[] = [];
   
@@ -96,4 +109,9 @@ export const isValidReunionCoordinates = (lat: number, lon: number): boolean => 
     lat >= -21.4 && lat <= -20.8 &&
     lon >= 55.2 && lon <= 55.8
   );
+};
+
+// Effacer le cache de géocodage
+export const clearGeocodeCache = (): void => {
+  Object.keys(geocodeCache).forEach(key => delete geocodeCache[key]);
 };

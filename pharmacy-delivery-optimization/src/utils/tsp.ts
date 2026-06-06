@@ -1,8 +1,8 @@
 import { Patient, RoutePoint, OptimizationResult } from '../types';
-import { haversineDistance, calculateTotalDistance, calculateTotalTime } from './distance';
+import { haversineDistance } from './distance';
 
 // Algorithme glouton (Nearest Neighbor) pour résoudre le TSP
-// Commence par la pharmacie (point de départ) et ajoute le patient le plus proche à chaque étape
+// Commence par la pharmacie et retourne à la pharmacie (tournée fermée)
 export const greedyTSP = (patients: Patient[]): OptimizationResult => {
   if (patients.length === 0) {
     return {
@@ -64,15 +64,10 @@ export const greedyTSP = (patients: Patient[]): OptimizationResult => {
   // Ajouter le retour à la pharmacie pour fermer la boucle
   route.push({ patient: pharmacy, order: route.length });
 
-  // Calculer la distance totale (incluant le retour à la pharmacie)
-  const routePatients = route.map(rp => rp.patient);
-  const totalDistance = calculateTotalDistance(routePatients);
-  const totalTime = calculateTotalTime(totalDistance);
-
   return {
     route,
-    totalDistance: Math.round(totalDistance * 100) / 100, // Arrondir à 2 décimales
-    totalTime,
+    totalDistance: 0, // Sera calculé via OSRM plus tard
+    totalTime: 0, // Sera calculé via OSRM plus tard
     optimized: true,
   };
 };
@@ -103,16 +98,24 @@ export const twoOptOptimization = (
         // Créer une nouvelle route avec l'échange 2-opt
         const newRoute = twoOptSwap(result.route, i, j);
         
-        // Calculer la nouvelle distance
+        // Calculer la nouvelle distance (approximation pour l'optimisation)
         const newRoutePatients = newRoute.map(rp => rp.patient);
-        const newDistance = calculateTotalDistance(newRoutePatients);
+        let newDistance = 0;
+        for (let k = 0; k < newRoutePatients.length - 1; k++) {
+          newDistance += haversineDistance(
+            newRoutePatients[k].latitude,
+            newRoutePatients[k].longitude,
+            newRoutePatients[k + 1].latitude,
+            newRoutePatients[k + 1].longitude
+          );
+        }
         
         // Si amélioration, garder la nouvelle route
         if (newDistance < result.totalDistance) {
           result = {
             route: newRoute,
             totalDistance: newDistance,
-            totalTime: calculateTotalTime(newDistance),
+            totalTime: 0, // Sera recalculé plus tard
             optimized: true,
           };
           improved = true;
@@ -121,10 +124,7 @@ export const twoOptOptimization = (
     }
   }
 
-  return {
-    ...result,
-    totalDistance: Math.round(result.totalDistance * 100) / 100,
-  };
+  return result;
 };
 
 // Effectuer un échange 2-opt sur la route
@@ -136,10 +136,6 @@ const twoOptSwap = (route: RoutePoint[], i: number, j: number): RoutePoint[] => 
     const temp = newRoute[k];
     newRoute[k] = newRoute[l];
     newRoute[l] = temp;
-    
-    // Mettre à jour les ordres
-    newRoute[k].order = k;
-    newRoute[l].order = l;
   }
   
   // Recalculer tous les ordres
@@ -148,8 +144,8 @@ const twoOptSwap = (route: RoutePoint[], i: number, j: number): RoutePoint[] => 
 
 // Optimisation complète (glouton + 2-opt)
 export const optimizeRoute = (patients: Patient[]): OptimizationResult => {
-  // Si moins de 3 points, le glouton suffit
-  if (patients.length <= 3) {
+  // Si moins de 2 patients (plus pharmacie), le glouton suffit
+  if (patients.length <= 2) {
     return greedyTSP(patients);
   }
   
