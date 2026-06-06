@@ -82,8 +82,13 @@ const App: React.FC = () => {
     <Layout style={{ minHeight: '100vh' }}>
       <Header style={{ backgroundColor: '#1890ff', padding: '0 24px' }}>
         <div style={{ display: 'flex', alignItems: 'center', height: '100%' }}>
+          <img
+            src="/pharmacy-logo.png"
+            alt="Logo Pharmacie"
+            style={{ height: '40px', marginRight: '12px', borderRadius: '4px' }}
+          />
           <Title level={3} style={{ color: 'white', margin: 0 }}>
-            🏥 Optimisation Tournées Livraison - La Réunion
+            Optimisation Tournées Livraison - La Réunion
           </Title>
         </div>
       </Header>
