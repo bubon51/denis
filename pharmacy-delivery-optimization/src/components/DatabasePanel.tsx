@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Card, Button, List, Checkbox, Modal, message, Input, Space, Typography, Tag } from 'antd';
+import { Card, Button, List, Checkbox, Modal, message, Input, Space, Typography } from 'antd';
 import { DatabaseOutlined, PlusOutlined, CheckOutlined, PhoneOutlined } from '@ant-design/icons';
 import { Patient } from '../types';
 

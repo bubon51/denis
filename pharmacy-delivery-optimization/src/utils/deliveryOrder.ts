@@ -6,12 +6,6 @@ import { OptimizationResult } from '../types';
 
 // Constantes pour le format A4
 const PATIENTS_PER_PAGE = 20;
-const PAGE_WIDTH_CM = 21; // Largeur A4 en cm
-const PAGE_HEIGHT_CM = 29.7; // Hauteur A4 en cm
-const MARGIN_TOP_CM = 2; // Marge supérieure pour le carré vide
-const MARGIN_LEFT_CM = 2; // Marge gauche pour le carré vide
-const SQUARE_WIDTH_CM = 2; // Largeur du carré vide
-const SQUARE_HEIGHT_CM = 1; // Hauteur du carré vide
 
 /**
  * Formate un patient pour l'impression.

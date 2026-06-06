@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, Form, Input, Button, message, Spin, AutoComplete, Checkbox } from 'antd';
+import { Modal, Form, Input, Button, message, Spin, AutoComplete } from 'antd';
 import { Patient } from '../types';
 
 interface PatientFormProps {
