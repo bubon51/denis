@@ -78,7 +78,7 @@ const OptimizationPanel: React.FC<OptimizationPanelProps> = ({
                     {routePoint.patient.isPharmacy ? 'Pharmacie' : `${routePoint.patient.prenom} ${routePoint.patient.nom}`}
                   </Text>
                   <Text type="secondary" style={{ fontSize: '12px' }}>
-                    {routePoint.patient.tempsLivraison} min
+                    1 min
                   </Text>
                 </div>
               ))}
